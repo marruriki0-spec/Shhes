@@ -28,6 +28,7 @@
         h1 {
             font-size: 1.6rem;
             margin: 0 0 8px 0;
+            text-align: center;
         }
         h2 {
             font-size: 1.3rem;
@@ -72,10 +73,7 @@
         .btn-success {
             background: #10b981;
         }
-        .btn-refresh {
-            background: #0f3460;
-        }
-        input, select {
+        input {
             width: 100%;
             padding: 14px;
             border: 1px solid #ccc;
@@ -165,6 +163,17 @@
             flex: 1;
             margin-top: 0;
         }
+        .login-box {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .login-box input {
+            text-align: center;
+            font-size: 24px;
+            letter-spacing: 4px;
+            max-width: 200px;
+            margin: 0 auto;
+        }
         .refresh-bar {
             background: #e9ecef;
             padding: 12px;
@@ -180,6 +189,11 @@
             font-size: 12px;
             color: #666;
         }
+        .logout-btn {
+            background: #6c757d;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -187,13 +201,18 @@
 
 <script>
     // ========== CONFIG ==========
-    const BASE_URL = window.location.origin + window.location.pathname;
-    const ADMIN_SECRET = "myadmin123";
+    const ADMIN_PASSWORD = "RIKI999";
+    const STORAGE_KEYS = {
+        AGENTS: "agent_system_agents",
+        KEYS: "agent_system_keys"
+    };
     
-    let agents = [];
-    let keys = [];
-    let isAdminMode = false;
-    let currentAgentCode = null;  // เก็บ agent ปัจจุบัน
+    // ข้อมูลหลัก
+    let agents = [];      // [{ id: "สมชาย", password: "1234" }, { id: "อ้อม", password: "5678" }]
+    let keys = [];        // [{ key: "CRX-xxx", agentId: "สมชาย" }]
+    
+    // สถานะปัจจุบัน
+    let currentUser = null;      // { role: "admin" } หรือ { role: "agent", id: "สมชาย" }
     
     // ========== Helper Functions ==========
     function showToast(msg, isErr = false) {
@@ -206,76 +225,93 @@
     }
     
     function saveData() {
-        localStorage.setItem('agents', JSON.stringify(agents));
-        localStorage.setItem('keys', JSON.stringify(keys));
+        localStorage.setItem(STORAGE_KEYS.AGENTS, JSON.stringify(agents));
+        localStorage.setItem(STORAGE_KEYS.KEYS, JSON.stringify(keys));
         console.log("✅ บันทึกแล้ว:", { agents, keys });
     }
     
     function loadData() {
-        const storedAgents = localStorage.getItem('agents');
-        const storedKeys = localStorage.getItem('keys');
+        const storedAgents = localStorage.getItem(STORAGE_KEYS.AGENTS);
+        const storedKeys = localStorage.getItem(STORAGE_KEYS.KEYS);
         
         if (storedAgents && storedKeys) {
             agents = JSON.parse(storedAgents);
             keys = JSON.parse(storedKeys);
             console.log("📂 โหลดข้อมูล:", { agents, keys });
         } else {
-            agents = [];
-            keys = [];
-            console.log("🆕 ไม่มีข้อมูล");
+            // ข้อมูลตัวอย่างเริ่มต้น
+            agents = [
+                { id: "สมชาย", password: "1234" },
+                { id: "อ้อม", password: "5678" },
+                { id: "ฝ่ายขาย A", password: "sale123" }
+            ];
+            keys = [
+                { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
+                { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
+                { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
+                { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
+                { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
+                { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" }
+            ];
+            saveData();
         }
     }
     
     function loadSampleData() {
-        agents = [
-            { id: "สมชาย", code: "agent_somchai" },
-            { id: "อ้อม", code: "agent_om" },
-            { id: "ฝ่ายขาย A", code: "agent_salesteamA" }
-        ];
-        keys = [
-            { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
-            { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
-            { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
-            { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
-            { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
-            { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" }
-        ];
-        saveData();
-        renderApp();
-        showToast("✅ โหลดข้อมูลตัวอย่างแล้ว");
+        if (confirm("⚠️ โหลดข้อมูลตัวอย่าง? (ข้อมูลปัจจุบันจะถูกลบ)")) {
+            agents = [
+                { id: "สมชาย", password: "1234" },
+                { id: "อ้อม", password: "5678" },
+                { id: "ฝ่ายขาย A", password: "sale123" }
+            ];
+            keys = [
+                { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
+                { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
+                { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
+                { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
+                { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
+                { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" }
+            ];
+            saveData();
+            renderApp();
+            showToast("✅ โหลดข้อมูลตัวอย่างแล้ว");
+        }
     }
     
     function clearAllData() {
         if (confirm("⚠️ ล้างข้อมูลทั้งหมด? (ตัวแทนและคีย์ทั้งหมดจะหาย)")) {
             agents = [];
             keys = [];
-            localStorage.removeItem('agents');
-            localStorage.removeItem('keys');
+            localStorage.removeItem(STORAGE_KEYS.AGENTS);
+            localStorage.removeItem(STORAGE_KEYS.KEYS);
+            currentUser = null;
             renderApp();
             showToast("🗑️ ล้างข้อมูลเรียบร้อย");
         }
     }
     
-    // ========== Agent Management ==========
+    function logout() {
+        currentUser = null;
+        renderApp();
+        showToast("👋 ออกจากระบบแล้ว");
+    }
+    
+    // ========== Admin Functions ==========
     function addAgent() {
         let name = prompt("ชื่อตัวแทน (เช่น สมชาย):");
         if (!name) return;
-        let code = prompt("รหัสเฉพาะตัวแทน (ภาษาอังกฤษ เช่น agent_somchai):");
-        if (!code) return;
+        let password = prompt("รหัสผ่านสำหรับตัวแทนคนนี้ (ใช้เข้าสู่ระบบ):");
+        if (!password) return;
         
         if (agents.find(a => a.id === name)) {
             showToast("❌ ชื่อตัวแทนซ้ำ", true);
             return;
         }
-        if (agents.find(a => a.code === code)) {
-            showToast("❌ รหัสเฉพาะซ้ำ", true);
-            return;
-        }
         
-        agents.push({ id: name, code: code });
+        agents.push({ id: name, password: password });
         saveData();
         renderApp();
-        showToast(`✅ เพิ่มตัวแทน ${name} แล้ว`);
+        showToast(`✅ เพิ่มตัวแทน ${name} แล้ว (รหัสผ่าน: ${password})`);
     }
     
     function deleteAgent(agentId) {
@@ -288,7 +324,6 @@
         }
     }
     
-    // ========== Key Management ==========
     function addKeyToAgent() {
         if (agents.length === 0) {
             showToast("❌ ยังไม่มีตัวแทน กรุณาเพิ่มตัวแทนก่อน", true);
@@ -328,105 +363,90 @@
         }
     }
     
-    // ========== Agent View (หน้าตัวแทน) - พร้อมปุ่มรีเฟรช ==========
-    function refreshAgentView() {
-        // โหลดข้อมูลล่าสุดจาก localStorage
-        loadData();
-        renderApp();
-        showToast("🔄 โหลดข้อมูลล่าสุดแล้ว");
+    function resetAgentPassword(agentId) {
+        let newPassword = prompt(`ตั้งรหัสผ่านใหม่สำหรับ ${agentId}:`);
+        if (!newPassword) return;
+        let agent = agents.find(a => a.id === agentId);
+        if (agent) {
+            agent.password = newPassword;
+            saveData();
+            renderApp();
+            showToast(`✅ เปลี่ยนรหัสผ่าน ${agentId} แล้ว`);
+        }
     }
     
-    function renderAgentView(agent) {
-        // ตรวจสอบว่าตัวแทนถูกลบไปหรือยัง
-        const currentAgent = agents.find(a => a.id === agent.id);
-        if (!currentAgent) {
-            return `
-                <div class="card">
-                    <h1>🔗 หน้าคัดลอกลิงก์</h1>
-                    <div class="alert alert-error" style="background:#f8d7da; border-left-color:#dc2626;">
-                        ⚠️ ไม่พบข้อมูลตัวแทนของคุณ<br>
-                        กรุณาติดต่อ Admin เพื่อรับลิงก์ใหม่
-                    </div>
-                    <a href="#" id="goAdminBtn">🔐 เข้าสู่ระบบ Admin</a>
-                </div>
-            `;
+    // ========== Agent Functions (ในหน้า Agent) ==========
+    function deleteKeyFromAgent(keyToDelete) {
+        if (currentUser && currentUser.role === 'agent') {
+            if (confirm(`⚠️ ลบคีย์ "${keyToDelete}"?`)) {
+                keys = keys.filter(k => !(k.key === keyToDelete && k.agentId === currentUser.id));
+                saveData();
+                renderApp();
+                showToast(`🗑️ ลบคีย์ ${keyToDelete} แล้ว`);
+            }
         }
-        
-        const agentKeys = keys.filter(k => k.agentId === agent.id);
-        const lastUpdated = new Date().toLocaleTimeString('th-TH');
-        
+    }
+    
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text);
+        showToast("✅ คัดลอกแล้ว");
+    }
+    
+    // ========== UI Rendering ==========
+    function renderLoginPage() {
         return `
             <div class="card">
-                <h1>🔗 หน้าคัดลอกลิงก์</h1>
-                <div class="alert">✅ สวัสดีคุณ <strong>${escapeHtml(agent.id)}</strong></div>
-                
-                <div class="refresh-bar">
-                    <span class="last-updated">🕐 อัปเดตล่าสุด: ${lastUpdated}</span>
-                    <button class="btn-refresh" onclick="refreshAgentView()" style="padding: 8px 16px; min-height: auto;">🔄 รีเฟรช</button>
-                </div>
-                
-                ${agentKeys.length === 0 ? 
-                    `<div class="alert alert-warning">⚠️ คุณยังไม่มีคีย์ กรุณาติดต่อ Admin หรือกดรีเฟรชด้านบน</div>` : 
-                    `<h2>📋 คีย์ของคุณ (${agentKeys.length} รายการ)</h2>
-                     <p style="font-size:13px; color:#666;">💡 เมื่อ Admin เพิ่มหรือลบคีย์ให้ กดปุ่มรีเฟรชเพื่อดูข้อมูลล่าสุด</p>`
-                }
-                
-                ${agentKeys.map(k => `
-                    <div class="key-item">
-                        <div><strong>🔑 ${escapeHtml(k.key)}</strong></div>
-                        <div class="link-box">${BASE_URL}?key=${encodeURIComponent(k.key)}</div>
-                        <div class="button-group">
-                            <button class="btn-outline" onclick='copyToClipboard("${BASE_URL}?key=${encodeURIComponent(k.key)}")'>📋 คัดลอก</button>
-                            <button class="btn-danger" onclick='deleteKeyWrapper("${k.key}", "${agent.id}")'>🗑️ ลบ</button>
-                        </div>
+                <h1>🔗 ระบบลิงก์สำหรับตัวแทน</h1>
+                <div class="login-box">
+                    <label>🔐 กรอกรหัสผ่านเพื่อเข้าสู่ระบบ</label>
+                    <input type="password" id="loginPassword" placeholder="รหัสผ่าน" autocomplete="off">
+                    <div class="button-group" style="margin-top: 20px;">
+                        <button id="loginBtn" class="btn-success">เข้าสู่ระบบ</button>
                     </div>
-                `).join('')}
-                
-                <hr>
-                <div class="flex-between">
-                    <a href="#" id="goAdminBtn">🔐 เข้าสู่ระบบ Admin</a>
-                    <button class="btn-outline" onclick="refreshAgentView()" style="padding: 8px 20px;">🔄 รีเฟรชข้อมูล</button>
+                </div>
+                <div class="alert-warning" style="padding: 12px; border-radius: 16px; margin-top: 16px;">
+                    💡 <strong>สำหรับ Admin:</strong> ใช้รหัส <code style="font-size: 16px;">RIKI999</code><br>
+                    💡 <strong>สำหรับตัวแทน:</strong> ใช้รหัสที่ Admin แจ้งให้
                 </div>
             </div>
         `;
     }
     
-    // ========== Admin View ==========
     function renderAdminView() {
         return `
             <div class="card">
                 <div class="flex-between">
                     <h1>🔐 แผงควบคุม Admin</h1>
-                    <div class="button-group">
-                        <button class="btn-warning" onclick="clearAllData()">🗑️ ล้างทั้งหมด</button>
-                        <button class="btn-outline" onclick="logoutAdmin()">🚪 ออก</button>
-                    </div>
+                    <button class="logout-btn btn-outline" onclick="logout()">🚪 ออกจากระบบ</button>
                 </div>
                 <div class="button-group">
                     <button class="btn-success" onclick="addAgent()">➕ เพิ่มตัวแทน</button>
                     <button class="btn-success" onclick="addKeyToAgent()">🔑 เพิ่มคีย์</button>
                     <button class="btn-outline" onclick="loadSampleData()">📋 โหลดตัวอย่าง</button>
+                    <button class="btn-warning" onclick="clearAllData()">🗑️ ล้างทั้งหมด</button>
                 </div>
                 <div class="alert alert-warning" style="margin-top: 16px; background:#e9ecef;">
-                    💡 หลังจากเพิ่ม/ลบคีย์แล้ว ตัวแทนต้องกดปุ่ม "รีเฟรช" ในหน้าของตัวเองเพื่อเห็นข้อมูลล่าสุด
+                    💡 ตัวแทนใช้รหัสผ่านของตัวเองเข้าสู่ระบบ จะเห็นเฉพาะคีย์ของตัวเอง
                 </div>
             </div>
             
             <div class="card">
                 <h2>👥 รายชื่อตัวแทน</h2>
-                ${agents.length === 0 ? '<p class="alert-error" style="padding:16px; background:#f8d7da; border-radius:16px;">⚠️ ยังไม่มีตัวแทน</p>' : 
+                ${agents.length === 0 ? '<p class="alert-error" style="padding:16px;">⚠️ ยังไม่มีตัวแทน</p>' : 
                     agents.map(ag => {
                         const agentKeys = keys.filter(k => k.agentId === ag.id);
-                        const agentLink = `${BASE_URL}?agent=${ag.code}`;
                         return `
                             <div class="agent-item">
                                 <div class="flex-between">
                                     <strong style="font-size: 16px;">👤 ${escapeHtml(ag.id)}</strong>
-                                    <button class="btn-danger" onclick="deleteAgent('${ag.id}')">🗑️ ลบตัวแทน</button>
+                                    <div class="button-group" style="width: auto;">
+                                        <button class="btn-outline" style="padding: 6px 12px;" onclick="resetAgentPassword('${ag.id}')">🔑 เปลี่ยนรหัส</button>
+                                        <button class="btn-danger" style="padding: 6px 12px;" onclick="deleteAgent('${ag.id}')">🗑️ ลบ</button>
+                                    </div>
                                 </div>
-                                <div style="margin-top: 12px;">
-                                    <code style="display: block; word-break: break-all;">${agentLink}</code>
-                                    <button class="btn-outline" style="margin-top: 8px;" onclick='copyToClipboard("${agentLink}")'>📋 คัดลอกลิงก์ตัวแทน</button>
+                                <div style="margin-top: 8px;">
+                                    <code>🔐 รหัสผ่าน: ${escapeHtml(ag.password)}</code>
+                                    <button class="btn-outline" style="margin-left: 8px; padding: 4px 12px;" onclick='copyToClipboard("${ag.password}")'>📋 คัดลอกรหัส</button>
                                 </div>
                                 <div style="margin-top: 12px;">
                                     <strong>🔑 คีย์ (${agentKeys.length}):</strong>
@@ -447,21 +467,59 @@
         `;
     }
     
-    // ========== Helper for global functions ==========
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text);
-        showToast("✅ คัดลอกแล้ว");
-    }
-    
-    function deleteKeyWrapper(key, agentId) {
-        deleteKey(key, agentId);
-    }
-    
-    function logoutAdmin() {
-        isAdminMode = false;
-        currentAgentCode = null;
-        renderApp();
-        showToast("👋 ออกจากโหมด Admin แล้ว");
+    function renderAgentView() {
+        const agentId = currentUser.id;
+        const agent = agents.find(a => a.id === agentId);
+        const agentKeys = keys.filter(k => k.agentId === agentId);
+        const lastUpdated = new Date().toLocaleTimeString('th-TH');
+        
+        if (!agent) {
+            return `
+                <div class="card">
+                    <h1>🔗 หน้าตัวแทน</h1>
+                    <div class="alert-error" style="padding:16px; border-radius:16px;">
+                        ⚠️ ไม่พบข้อมูลตัวแทน กรุณาติดต่อ Admin
+                    </div>
+                    <button onclick="logout()" class="btn-outline" style="margin-top: 16px;">🚪 กลับไปหน้าแรก</button>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="card">
+                <div class="flex-between">
+                    <h1>🔗 หน้าตัวแทน</h1>
+                    <button class="logout-btn btn-outline" onclick="logout()">🚪 ออกจากระบบ</button>
+                </div>
+                <div class="alert">✅ สวัสดีคุณ <strong>${escapeHtml(agent.id)}</strong></div>
+                
+                <div class="refresh-bar">
+                    <span class="last-updated">🕐 อัปเดตล่าสุด: ${lastUpdated}</span>
+                    <button class="btn-refresh" onclick="renderApp()" style="padding: 8px 16px; min-height: auto;">🔄 รีเฟรช</button>
+                </div>
+                
+                ${agentKeys.length === 0 ? 
+                    `<div class="alert-warning">⚠️ คุณยังไม่มีคีย์ กรุณาติดต่อ Admin หรือกดรีเฟรชด้านบน</div>` : 
+                    `<h2>📋 คีย์ของคุณ (${agentKeys.length} รายการ)</h2>`
+                }
+                
+                ${agentKeys.map(k => `
+                    <div class="key-item">
+                        <div><strong>🔑 ${escapeHtml(k.key)}</strong></div>
+                        <div class="link-box">${window.location.origin}${window.location.pathname}?key=${encodeURIComponent(k.key)}</div>
+                        <div class="button-group">
+                            <button class="btn-outline" onclick='copyToClipboard("${window.location.origin}${window.location.pathname}?key=${encodeURIComponent(k.key)}")'>📋 คัดลอก</button>
+                            <button class="btn-danger" onclick='deleteKeyFromAgent("${k.key}")'>🗑️ ลบ</button>
+                        </div>
+                    </div>
+                `).join('')}
+                
+                <hr>
+                <div class="flex-between">
+                    <button class="btn-outline" onclick="renderApp()">🔄 รีเฟรชข้อมูล</button>
+                </div>
+            </div>
+        `;
     }
     
     function escapeHtml(str) {
@@ -474,85 +532,76 @@
         });
     }
     
+    // ========== Login Handler ==========
+    function handleLogin(password) {
+        // ตรวจสอบ Admin
+        if (password === ADMIN_PASSWORD) {
+            currentUser = { role: "admin" };
+            renderApp();
+            showToast("✅ เข้าสู่ระบบ Admin สำเร็จ");
+            return true;
+        }
+        
+        // ตรวจสอบตัวแทน
+        const agent = agents.find(a => a.password === password);
+        if (agent) {
+            currentUser = { role: "agent", id: agent.id };
+            renderApp();
+            showToast(`✅ สวัสดีคุณ ${agent.id}`);
+            return true;
+        }
+        
+        showToast("❌ รหัสผ่านไม่ถูกต้อง", true);
+        return false;
+    }
+    
     // ========== Main Render ==========
     function renderApp() {
         const app = document.getElementById('app');
-        const params = new URLSearchParams(window.location.search);
         
-        // ตรวจสอบ Admin mode
-        if (params.get('admin') === ADMIN_SECRET) {
-            isAdminMode = true;
-            currentAgentCode = null;
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-        
-        if (isAdminMode) {
-            app.innerHTML = renderAdminView();
-            return;
-        }
-        
-        // ตรวจสอบ Agent mode
-        const agentCode = params.get('agent');
-        if (agentCode) {
-            currentAgentCode = agentCode;
-            const agent = agents.find(a => a.code === agentCode);
-            app.innerHTML = renderAgentView(agent || { id: null });
+        // ถ้ายังไม่ได้ล็อกอิน
+        if (!currentUser) {
+            app.innerHTML = renderLoginPage();
+            const loginBtn = document.getElementById('loginBtn');
+            const passwordInput = document.getElementById('loginPassword');
             
-            const goBtn = document.getElementById('goAdminBtn');
-            if (goBtn) {
-                goBtn.onclick = (e) => {
-                    e.preventDefault();
-                    let pwd = prompt("รหัส Admin:");
-                    if (pwd === ADMIN_SECRET) {
-                        isAdminMode = true;
-                        currentAgentCode = null;
-                        renderApp();
-                    } else {
-                        showToast("❌ รหัสผ่านไม่ถูกต้อง", true);
+            if (loginBtn) {
+                loginBtn.onclick = () => {
+                    const pwd = passwordInput.value;
+                    handleLogin(pwd);
+                };
+            }
+            if (passwordInput) {
+                passwordInput.onkeypress = (e) => {
+                    if (e.key === 'Enter') {
+                        handleLogin(passwordInput.value);
                     }
                 };
             }
             return;
         }
         
-        // หน้าต้อนรับ
-        app.innerHTML = `
-            <div class="card">
-                <h1>🔗 ระบบลิงก์สำหรับตัวแทน</h1>
-                <div class="alert alert-warning">
-                    ⚠️ ไม่พบข้อมูลตัวแทน<br>
-                    กรุณาใช้ลิงก์ที่ Admin ส่งให้เท่านั้น
-                </div>
-                <p style="text-align: center; margin-top: 16px;">
-                    <a href="#" id="adminLink">🔐 เข้าสู่ระบบ Admin</a>
-                </p>
-            </div>
-        `;
-        
-        document.getElementById('adminLink')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            let pwd = prompt("รหัส Admin:");
-            if (pwd === ADMIN_SECRET) {
-                isAdminMode = true;
-                renderApp();
-            } else {
-                showToast("❌ รหัสผ่านไม่ถูกต้อง", true);
-            }
-        });
+        // แสดงตามบทบาท
+        if (currentUser.role === 'admin') {
+            app.innerHTML = renderAdminView();
+        } else if (currentUser.role === 'agent') {
+            app.innerHTML = renderAgentView();
+        }
     }
     
     // ========== ทำให้ฟังก์ชันเรียกใช้จาก onclick ได้ ==========
     window.showToast = showToast;
     window.copyToClipboard = copyToClipboard;
     window.deleteKey = deleteKey;
-    window.deleteKeyWrapper = deleteKeyWrapper;
+    window.deleteKeyFromAgent = deleteKeyFromAgent;
     window.deleteAgent = deleteAgent;
     window.clearAllData = clearAllData;
     window.addAgent = addAgent;
     window.addKeyToAgent = addKeyToAgent;
     window.loadSampleData = loadSampleData;
-    window.logoutAdmin = logoutAdmin;
-    window.refreshAgentView = refreshAgentView;
+    window.logout = logout;
+    window.resetAgentPassword = resetAgentPassword;
+    window.renderApp = renderApp;
     
     // ========== เริ่มต้น ==========
     loadData();
