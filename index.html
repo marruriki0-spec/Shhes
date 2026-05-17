@@ -18,6 +18,7 @@
         .btn-danger { background: #dc2626; }
         .btn-warning { background: #f59e0b; color: #1e2a3a; }
         .btn-success { background: #10b981; }
+        .btn-sync { background: #8b5cf6; }
         input { width: 100%; padding: 14px; border: 1px solid #ccc; border-radius: 16px; font-size: 16px; margin-top: 5px; }
         label { font-weight: 600; display: block; margin-top: 16px; margin-bottom: 4px; }
         .key-item, .agent-item { background: #f8f9fa; border-radius: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid #e9ecef; }
@@ -27,7 +28,7 @@
         .toast { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #10b981; color: white; padding: 14px; border-radius: 40px; text-align: center; z-index: 1000; font-weight: 500; animation: fadeOut 2s ease-in-out; }
         @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
         hr { margin: 20px 0; }
-        code { background: #e9ecef; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+        code { background: #e9ecef; padding: 4px 12px; border-radius: 12px; font-size: 16px; font-weight: bold; }
         .password-card { background: #e9ecef; padding: 12px; border-radius: 16px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .password-value { font-family: monospace; font-size: 24px; font-weight: bold; letter-spacing: 3px; background: white; padding: 8px 20px; border-radius: 40px; }
         .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
@@ -36,6 +37,8 @@
         .login-box input { text-align: center; font-size: 24px; letter-spacing: 4px; max-width: 250px; margin: 0 auto; }
         .refresh-bar { background: #e9ecef; padding: 12px; border-radius: 40px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .logout-btn { background: #6c757d; padding: 8px 16px; font-size: 14px; }
+        .sync-box { background: #ede9fe; border: 2px dashed #8b5cf6; border-radius: 16px; padding: 12px; margin-top: 16px; }
+        textarea { width: 100%; padding: 10px; border-radius: 12px; font-family: monospace; font-size: 12px; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -61,7 +64,6 @@
         localStorage.setItem('agents', JSON.stringify(agents));
         localStorage.setItem('keys', JSON.stringify(keys));
         console.log("Saved:", { agents, keys });
-        showToast("💾 บันทึกแล้ว");
     }
     
     function loadData() {
@@ -85,6 +87,48 @@
             ];
             saveData();
         }
+    }
+    
+    // ========== SYNC FUNCTION (สำคัญ!!) ==========
+    function exportData() {
+        let data = {
+            agents: agents,
+            keys: keys,
+            version: Date.now()
+        };
+        let json = JSON.stringify(data);
+        // สร้างลิงก์สั้นๆ ด้วย URL encoding
+        let encoded = encodeURIComponent(json);
+        let syncUrl = `${window.location.origin}${window.location.pathname}?sync=${encoded}`;
+        
+        // แสดง popup ให้คัดลอก
+        prompt("📋 คัดลอกลิงก์นี้ไปส่งให้อีกเครื่อง (หรือตัวแทน):\n(ให้อีกเครื่องเปิดลิงก์นี้ จะโหลดข้อมูลเหมือนเครื่องคุณทันที)", syncUrl);
+        showToast("✅ สร้างลิงก์ซิงค์แล้ว");
+    }
+    
+    function importFromSync() {
+        let urlParams = new URLSearchParams(window.location.search);
+        let syncData = urlParams.get('sync');
+        if (syncData) {
+            try {
+                let decoded = decodeURIComponent(syncData);
+                let data = JSON.parse(decoded);
+                if (data.agents && data.keys) {
+                    agents = data.agents;
+                    keys = data.keys;
+                    saveData();
+                    showToast("✅ ซิงค์ข้อมูลสำเร็จ! ข้อมูลตรงกับเครื่องหลักแล้ว");
+                    // ล้าง URL parameter
+                    window.history.replaceState({}, '', window.location.pathname);
+                    renderApp();
+                    return true;
+                }
+            } catch(e) {
+                console.error("Sync error:", e);
+                showToast("❌ ลิงก์ซิงค์ไม่ถูกต้อง", true);
+            }
+        }
+        return false;
     }
     
     function logout() {
@@ -214,6 +258,13 @@
                 <div class="button-group">
                     <button class="btn-success" onclick="addAgent()">➕ เพิ่มตัวแทน</button>
                     <button class="btn-success" onclick="addKey()">🔑 เพิ่มคีย์</button>
+                    <button class="btn-sync" onclick="exportData()">🔄 สร้างลิงก์ซิงค์ข้อมูล</button>
+                </div>
+                <div class="sync-box">
+                    <strong>🔄 วิธีซิงค์ข้อมูลไปยังเครื่องอื่น/ตัวแทน:</strong><br>
+                    1. กดปุ่ม <strong>"สร้างลิงก์ซิงค์ข้อมูล"</strong> ด้านบน<br>
+                    2. คัดลอกลิงก์ที่ได้ ไปส่งให้อีกเครื่อง (หรือตัวแทน)<br>
+                    3. อีกเครื่องเปิดลิงก์นั้น → ข้อมูลจะตรงกับเครื่องคุณทันที
                 </div>
                 <div class="alert-warning" style="margin-top: 16px;">
                     💡 เวลาส่งรหัสให้ตัวแทน ให้คัดลอกไปวางเลย อย่าพิมพ์เอง
@@ -283,6 +334,11 @@
                         </div>
                     `).join('')}
                 `}
+                <div class="sync-box" style="margin-top: 16px;">
+                    <strong>🔄 ถ้าข้อมูลไม่ตรงกับที่ Admin แจ้ง:</strong><br>
+                    ให้ขอ "ลิงก์ซิงค์" จาก Admin แล้วเปิดลิงก์นั้น<br>
+                    (ข้อมูลจะอัปเดตตรงกับเครื่อง Admin ทันที)
+                </div>
             </div>
         `;
     }
@@ -314,9 +370,13 @@
     window.copyToClipboard = copyToClipboard;
     window.logout = logout;
     window.renderApp = renderApp;
+    window.exportData = exportData;
     
+    // ตรวจสอบการซิงค์จาก URL ก่อน
     loadData();
-    renderApp();
+    if (!importFromSync()) {
+        renderApp();
+    }
 </script>
 </body>
 </html>
