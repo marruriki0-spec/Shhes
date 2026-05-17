@@ -24,6 +24,9 @@
         .btn-danger:hover { background: #b91c1c; }
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: #1e2a3a; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; margin: 0; }
         .key-list { background: #f8f9fa; border-radius: 20px; padding: 0; list-style: none; margin: 0; }
         .key-item { background: white; border: 1px solid #e9ecef; border-radius: 16px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
         .agent-item { background: white; border: 1px solid #e9ecef; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
@@ -35,7 +38,8 @@
         .admin-badge { background: #ffedd5; color: #b45309; font-size: 12px; padding: 2px 12px; border-radius: 20px; }
         hr { margin: 24px 0; }
         .link-box { background: #edf2f7; padding: 10px; border-radius: 16px; word-break: break-all; font-family: monospace; font-size: 12px; margin-top: 8px; }
-        .edit-mode { background: #fef9c3; border: 2px solid #f59e0b; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; animation: fadeOut 2s ease-in-out; }
+        @keyframes fadeOut { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
     </style>
 </head>
 <body>
@@ -45,42 +49,77 @@
     // ========== CONFIG ==========
     const BASE_URL = window.location.origin + window.location.pathname;
     const ADMIN_SECRET = "myadmin123";
+    const STORAGE_KEYS = {
+        AGENTS: "agent_system_agents_v2",
+        KEYS: "agent_system_keys_v2"
+    };
     
-    // โครงสร้างข้อมูล
-    let agents = [];      // [{ id: "สมชาย", code: "agent_somchai" }]
-    let keys = [];        // [{ key: "CRX-xxx", agentId: "สมชาย" }]
+    let agents = [];
+    let keys = [];
     let isAdminMode = false;
-    let editingAgentId = null;  // กำลังแก้ไขตัวแทนคนไหน
+    let editingAgentId = null;
     
     // ========== Utility ==========
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.backgroundColor = isError ? '#dc2626' : '#10b981';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+    
     function saveToLocal() {
-        localStorage.setItem("agent_system_agents", JSON.stringify(agents));
-        localStorage.setItem("agent_system_keys", JSON.stringify(keys));
+        localStorage.setItem(STORAGE_KEYS.AGENTS, JSON.stringify(agents));
+        localStorage.setItem(STORAGE_KEYS.KEYS, JSON.stringify(keys));
+        console.log("✅ บันทึกข้อมูลแล้ว:", { agents, keys });
     }
     
     function loadData() {
-        const storedAgents = localStorage.getItem("agent_system_agents");
-        const storedKeys = localStorage.getItem("agent_system_keys");
-        if(storedAgents) agents = JSON.parse(storedAgents);
-        if(storedKeys) keys = JSON.parse(storedKeys);
-        if(!agents.length) {
-            agents = [
-                { id: "สมชาย", code: "agent_somchai" },
-                { id: "อ้อม", code: "agent_om" },
-                { id: "ฝ่ายขาย A", code: "agent_salesteamA" }
-            ];
-            keys = [
-                { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
-                { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
-                { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
-                { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
-                { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
-                { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" },
-                { key: "CRX-A59FF7-18D9FE", agentId: "สมชาย" },
-                { key: "CRX-B54D1B-EBB153", agentId: "อ้อม" },
-                { key: "CRX-D719C6-654506", agentId: "ฝ่ายขาย A" }
-            ];
-            saveToLocal();
+        const storedAgents = localStorage.getItem(STORAGE_KEYS.AGENTS);
+        const storedKeys = localStorage.getItem(STORAGE_KEYS.KEYS);
+        
+        if(storedAgents && storedKeys) {
+            agents = JSON.parse(storedAgents);
+            keys = JSON.parse(storedKeys);
+            console.log("📂 โหลดข้อมูลจาก localStorage:", { agents, keys });
+            if(agents.length === 0 && keys.length === 0) {
+                loadSampleData();
+            }
+        } else {
+            console.log("🆕 ไม่พบข้อมูลใน localStorage โหลดตัวอย่าง");
+            loadSampleData();
+        }
+    }
+    
+    function loadSampleData() {
+        agents = [
+            { id: "สมชาย", code: "agent_somchai" },
+            { id: "อ้อม", code: "agent_om" },
+            { id: "ฝ่ายขาย A", code: "agent_salesteamA" }
+        ];
+        keys = [
+            { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
+            { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
+            { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
+            { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
+            { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
+            { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" },
+            { key: "CRX-A59FF7-18D9FE", agentId: "สมชาย" },
+            { key: "CRX-B54D1B-EBB153", agentId: "อ้อม" },
+            { key: "CRX-D719C6-654506", agentId: "ฝ่ายขาย A" }
+        ];
+        saveToLocal();
+    }
+    
+    function clearAllData() {
+        if(confirm("⚠️ คำเตือน! การล้างข้อมูลจะลบตัวแทนและคีย์ทั้งหมด ข้อมูลจะกลับมาเป็นตัวอย่างเริ่มต้นเท่านั้น ดำเนินการต่อ?")) {
+            localStorage.removeItem(STORAGE_KEYS.AGENTS);
+            localStorage.removeItem(STORAGE_KEYS.KEYS);
+            loadSampleData();
+            editingAgentId = null;
+            renderApp();
+            showToast("🗑️ ล้างข้อมูลเรียบร้อยแล้ว โหลดข้อมูลตัวอย่าง");
         }
     }
     
@@ -101,9 +140,9 @@
         return false;
     }
     
-    // ========== หน้า Agent (ตัวแทน) ==========
+    // ========== หน้า Agent (ตัวแทน) - เพิ่มปุ่มลบคีย์ ==========
     function renderAgentPage(agent) {
-        const agentKeys = keys.filter(k => k.agentId === agent.id);
+        let agentKeys = keys.filter(k => k.agentId === agent.id);
         const agentLink = `${BASE_URL}?agent=${agent.code}`;
         return `
             <div class="card">
@@ -114,16 +153,20 @@
                 </div>
                 ${agentKeys.length === 0 ? 
                     `<div class="alert-error" style="background:#f8d7da; padding:12px; border-radius:20px;">⚠️ คุณยังไม่มีคีย์ กรุณาติดต่อ Admin</div>` : 
-                    `<h2>📋 คีย์ที่ต้องส่งให้ลูกค้า (${agentKeys.length} รายการ)</h2>`
+                    `<h2>📋 คีย์ที่ต้องส่งให้ลูกค้า (${agentKeys.length} รายการ)</h2>
+                     <p style="font-size:13px; color:#666;">💡 แนะนำ: เมื่อส่งลิงก์ให้ลูกค้าเรียบร้อยแล้ว สามารถลบคีย์นั้นออกได้เลย เพื่อไม่ให้เกิดความสับสน</p>`
                 }
                 <div id="linksArea">
-                    ${agentKeys.map(item => {
+                    ${agentKeys.map((item, idx) => {
                         const fullLink = `${BASE_URL}?key=${encodeURIComponent(item.key)}`;
                         return `
-                            <div style="background:#f8f9fa; border-radius:16px; padding:12px; margin-bottom:12px;">
+                            <div style="background:#f8f9fa; border-radius:16px; padding:12px; margin-bottom:12px;" data-key-index="${idx}">
                                 <div class="flex-between">
                                     <span class="key-code">🔑 ${escapeHtml(item.key)}</span>
-                                    <button class="copySingleLink btn-outline" data-link="${escapeHtml(fullLink)}" style="margin:0;">📋 คัดลอกลิงก์นี้</button>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="copySingleLink btn-outline btn-sm" data-link="${escapeHtml(fullLink)}">📋 คัดลอก</button>
+                                        <button class="deleteKeyBtn btn-danger btn-sm" data-key="${escapeHtml(item.key)}">🗑️ ลบ</button>
+                                    </div>
                                 </div>
                                 <div class="link-box">${escapeHtml(fullLink)}</div>
                             </div>
@@ -141,44 +184,73 @@
     }
     
     function bindAgentEvents(agent) {
-        const agentKeys = keys.filter(k => k.agentId === agent.id);
+        // อัปเดต agentKeys แบบ real-time
+        let agentKeys = keys.filter(k => k.agentId === agent.id);
+        
+        // คัดลอกทีละอัน
         document.querySelectorAll('.copySingleLink').forEach(btn => {
             btn.onclick = () => {
                 navigator.clipboard.writeText(btn.dataset.link);
-                alert("✅ คัดลอกลิงก์แล้ว");
+                showToast("✅ คัดลอกลิงก์แล้ว");
             };
         });
+        
+        // ลบคีย์ (เพิ่มระบบลบเฉพาะคีย์ของตัวแทนนี้เท่านั้น)
+        document.querySelectorAll('.deleteKeyBtn').forEach(btn => {
+            btn.onclick = () => {
+                const keyToDelete = btn.dataset.key;
+                if(confirm(`คุณต้องการลบคีย์ "${keyToDelete}" ใช่หรือไม่? (ลบแล้วไม่สามารถกู้คืนได้)`)) {
+                    // หา index ของคีย์ที่ต้องการลบ
+                    const keyIndex = keys.findIndex(k => k.key === keyToDelete && k.agentId === agent.id);
+                    if(keyIndex !== -1) {
+                        keys.splice(keyIndex, 1);
+                        saveToLocal();
+                        showToast(`🗑️ ลบคีย์ ${keyToDelete} เรียบร้อย`);
+                        // รีเฟรชหน้า agent view
+                        renderApp();
+                    } else {
+                        showToast("ไม่พบคีย์นี้ในระบบ", true);
+                    }
+                }
+            };
+        });
+        
+        // คัดลอกทั้งหมด
         const copyAllBtn = document.getElementById("copyAllBtn");
         if(copyAllBtn) copyAllBtn.onclick = () => {
             const allLinks = agentKeys.map(k => `${BASE_URL}?key=${encodeURIComponent(k.key)}`).join("\n");
             navigator.clipboard.writeText(allLinks);
-            alert(`✅ คัดลอก ${agentKeys.length} ลิงก์ทั้งหมดแล้ว`);
+            showToast(`✅ คัดลอก ${agentKeys.length} ลิงก์ทั้งหมดแล้ว`);
         };
+        
+        // ลิงก์ไปหน้า Admin
         document.getElementById("goToAdminLink")?.addEventListener("click", (e) => {
             e.preventDefault();
             const pwd = prompt("กรุณากรอกรหัสผ่าน Admin:");
             if(pwd === ADMIN_SECRET) { isAdminMode = true; renderApp(); }
-            else alert("รหัสผ่านไม่ถูกต้อง");
+            else showToast("❌ รหัสผ่านไม่ถูกต้อง", true);
         });
     }
     
-    // ========== หน้า Admin (จัดการเต็มรูปแบบ) ==========
+    // ========== หน้า Admin ==========
     function renderAdminPage() {
         return `
             <div class="card">
                 <div class="flex-between">
                     <h1>🔐 แผงควบคุม Admin <span class="admin-badge">โหมดผู้ดูแล</span></h1>
-                    <button id="logoutAdminBtn" class="btn-outline">🚪 ออกจากโหมด Admin</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="clearAllDataBtn" class="btn-warning">🗑️ ล้างข้อมูลทั้งหมด</button>
+                        <button id="logoutAdminBtn" class="btn-outline">🚪 ออกจากโหมด Admin</button>
+                    </div>
                 </div>
                 <div class="alert">
                     💡 <strong>วิธีใช้งาน:</strong><br>
                     • เพิ่มตัวแทน → ระบบจะสร้างลิงก์เฉพาะให้อัตโนมัติ<br>
                     • คัดลอกลิงก์ของตัวแทนไปส่งให้เขา (ทางไลน์/อีเมล)<br>
-                    • ตัวแทนเปิดลิงก์นั้นจะเห็นเฉพาะคีย์ของตัวเองเท่านั้น
+                    • ตัวแทนเปิดลิงก์นั้นจะเห็นเฉพาะคีย์ของตัวเอง และสามารถลบคีย์ที่ใช้แล้วได้เอง
                 </div>
             </div>
             <div class="grid-2">
-                <!-- LEFT: จัดการตัวแทน -->
                 <div class="card">
                     <h2>👥 จัดการตัวแทน</h2>
                     <div id="agentFormArea">
@@ -197,7 +269,6 @@
                     <div id="agentListContainer"></div>
                 </div>
                 
-                <!-- RIGHT: จัดการคีย์ -->
                 <div class="card">
                     <h2>🔑 จัดการคีย์ (Key)</h2>
                     <label>เลือกตัวแทน</label>
@@ -253,7 +324,6 @@
         });
         container.innerHTML = html;
         
-        // แก้ไขตัวแทน
         document.querySelectorAll('.editAgentBtn').forEach(btn => {
             btn.onclick = () => {
                 editingAgentId = btn.getAttribute('data-agentid');
@@ -261,7 +331,6 @@
             };
         });
         
-        // ลบตัวแทน
         document.querySelectorAll('.deleteAgentBtn').forEach(btn => {
             btn.onclick = () => {
                 const agentId = btn.getAttribute('data-agentid');
@@ -278,11 +347,10 @@
             };
         });
         
-        // คัดลอกลิงก์ตัวแทน
         document.querySelectorAll('.copyAgentLinkBtn').forEach(btn => {
             btn.onclick = () => {
                 navigator.clipboard.writeText(btn.getAttribute('data-link'));
-                alert("✅ คัดลอกลิงก์สำหรับตัวแทนแล้ว");
+                showToast("✅ คัดลอกลิงก์สำหรับตัวแทนแล้ว");
             };
         });
     }
@@ -319,28 +387,24 @@
     }
     
     function bindAdminEvents() {
-        // บันทึกตัวแทน (เพิ่มหรือแก้ไข)
         document.getElementById("saveAgentBtn")?.addEventListener("click", () => {
             const name = document.getElementById("agentName").value.trim();
             const code = document.getElementById("agentCode").value.trim();
-            if(!name) return alert("กรุณากรอกชื่อตัวแทน");
-            if(!code) return alert("กรุณากรอกรหัสเฉพาะตัวแทน");
+            if(!name) return showToast("กรุณากรอกชื่อตัวแทน", true);
+            if(!code) return showToast("กรุณากรอกรหัสเฉพาะตัวแทน", true);
             if(editingAgentId) {
-                // โหมดแก้ไข
-                if(editingAgentId !== name && agents.some(a => a.id === name)) return alert("ชื่อตัวแทนนี้มีอยู่แล้ว");
-                if(agents.some(a => a.code === code && a.id !== editingAgentId)) return alert("รหัสเฉพาะนี้ซ้ำกับตัวแทนอื่น");
+                if(editingAgentId !== name && agents.some(a => a.id === name)) return showToast("ชื่อตัวแทนนี้มีอยู่แล้ว", true);
+                if(agents.some(a => a.code === code && a.id !== editingAgentId)) return showToast("รหัสเฉพาะนี้ซ้ำกับตัวแทนอื่น", true);
                 const index = agents.findIndex(a => a.id === editingAgentId);
                 if(index !== -1) {
-                    // อัปเดต agentId ใน keys ด้วย
                     const oldId = agents[index].id;
                     agents[index] = { id: name, code: code };
                     keys = keys.map(k => k.agentId === oldId ? { ...k, agentId: name } : k);
                 }
                 editingAgentId = null;
             } else {
-                // โหมดเพิ่มใหม่
-                if(agents.some(a => a.id === name)) return alert("ชื่อตัวแทนนี้มีอยู่แล้ว");
-                if(agents.some(a => a.code === code)) return alert("รหัสเฉพาะนี้มีอยู่แล้ว");
+                if(agents.some(a => a.id === name)) return showToast("ชื่อตัวแทนนี้มีอยู่แล้ว", true);
+                if(agents.some(a => a.code === code)) return showToast("รหัสเฉพาะนี้มีอยู่แล้ว", true);
                 agents.push({ id: name, code: code });
             }
             saveToLocal();
@@ -359,15 +423,16 @@
         
         document.getElementById("addKeyBtn")?.addEventListener("click", () => {
             const agentId = document.getElementById("keyAgentSelect").value;
-            if(!agentId) return alert("กรุณาเลือกตัวแทนก่อน");
+            if(!agentId) return showToast("กรุณาเลือกตัวแทนก่อน", true);
             const keyRaw = document.getElementById("newKey").value.trim();
-            if(!keyRaw) return alert("กรุณากรอกรหัสคีย์");
-            if(keys.some(k => k.key === keyRaw)) return alert("คีย์นี้มีอยู่แล้วในระบบ");
+            if(!keyRaw) return showToast("กรุณากรอกรหัสคีย์", true);
+            if(keys.some(k => k.key === keyRaw)) return showToast("คีย์นี้มีอยู่แล้วในระบบ", true);
             keys.push({ key: keyRaw, agentId: agentId });
             saveToLocal();
             document.getElementById("newKey").value = "";
             renderAdminKeysList();
             renderAgentListAdmin();
+            showToast(`✅ เพิ่มคีย์ ${keyRaw} ให้ ${agentId} แล้ว`);
         });
         
         document.getElementById("exportDataBtn")?.addEventListener("click", () => {
@@ -379,34 +444,22 @@
             a.download = `agent_backup_${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
+            showToast("📎 ส่งออกข้อมูล JSON แล้ว");
         });
         
         document.getElementById("resetDemoBtn")?.addEventListener("click", () => {
             if(confirm("โหลดข้อมูลตัวอย่าง? ข้อมูลปัจจุบันจะถูกลบ")) {
-                agents = [
-                    { id: "สมชาย", code: "agent_somchai" },
-                    { id: "อ้อม", code: "agent_om" },
-                    { id: "ฝ่ายขาย A", code: "agent_salesteamA" }
-                ];
-                keys = [
-                    { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
-                    { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
-                    { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
-                    { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
-                    { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
-                    { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" },
-                    { key: "CRX-A59FF7-18D9FE", agentId: "สมชาย" },
-                    { key: "CRX-B54D1B-EBB153", agentId: "อ้อม" },
-                    { key: "CRX-D719C6-654506", agentId: "ฝ่ายขาย A" }
-                ];
-                saveToLocal();
+                loadSampleData();
                 editingAgentId = null;
                 renderAdminKeysList();
                 renderAgentListAdmin();
                 const select = document.getElementById("keyAgentSelect");
                 if(select) select.innerHTML = `<option value="">-- เลือกตัวแทน --</option>${agents.map(ag => `<option value="${escapeHtml(ag.id)}">${escapeHtml(ag.id)}</option>`).join('')}`;
+                showToast("🔄 โหลดข้อมูลตัวอย่างแล้ว");
             }
         });
+        
+        document.getElementById("clearAllDataBtn")?.addEventListener("click", clearAllData);
         
         document.getElementById("logoutAdminBtn")?.addEventListener("click", () => {
             isAdminMode = false;
@@ -444,7 +497,7 @@
                 e.preventDefault();
                 const pwd = prompt("รหัสผ่าน Admin:");
                 if(pwd === ADMIN_SECRET) { isAdminMode = true; renderApp(); }
-                else alert("รหัสผ่านผิด");
+                else showToast("❌ รหัสผ่านไม่ถูกต้อง", true);
             });
         }
     }
