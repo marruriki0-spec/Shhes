@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Proxy Link Generator | Riki Tool</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 30% 40%, #0a0f2a, #02040a);
+      font-family: 'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif;
+      padding: 2rem 1rem;
+      color: #f0f3fa;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+      animation: rotateBg 28s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes rotateBg {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .luxury-card {
+      background: rgba(12, 18, 34, 0.55);
+      backdrop-filter: blur(20px);
+      border-radius: 3rem;
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      box-shadow: 0 30px 50px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08);
+      padding: 2.2rem;
+      transition: all 0.3s ease;
+    }
+
+    .luxury-card:hover {
+      border-color: rgba(168, 85, 247, 0.7);
+      box-shadow: 0 35px 55px -20px #7c3aed40;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .chip {
+      display: inline-block;
+      background: rgba(139,92,246,0.2);
+      backdrop-filter: blur(4px);
+      padding: 6px 16px;
+      border-radius: 60px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      border: 0.5px solid rgba(139,92,246,0.5);
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: linear-gradient(125deg, #ffffff, #c084fc, #a78bfa);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: shimmer 5s linear infinite;
+      letter-spacing: -0.02em;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    .sub {
+      color: #9ca3c0;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      border-left: 2px solid #8b5cf6;
+      padding-left: 12px;
+      display: inline-block;
+    }
+
+    .settings-section {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 1.5rem;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .settings-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .reset-default-btn {
+      background: rgba(139, 92, 246, 0.2);
+      border: 0.5px solid #8b5cf6;
+      border-radius: 40px;
+      padding: 4px 12px;
+      font-size: 0.65rem;
+      color: #c084fc;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .reset-default-btn:active {
+      transform: scale(0.95);
+    }
+
+    .base-url-input-wrapper {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .base-url-input-wrapper input {
+      flex: 2;
+      background: #0b0f1c;
+      border: 1.5px solid #2a3550;
+      border-radius: 2rem;
+      padding: 0.7rem 1.2rem;
+      font-size: 0.85rem;
+      font-family: 'SF Mono', monospace;
+      color: #f0f3ff;
+      outline: none;
+    }
+
+    .base-url-input-wrapper input:focus {
+      border-color: #c084fc;
+      box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.2);
+    }
+
+    .save-url-btn {
+      background: linear-gradient(105deg, #4f46e5, #6366f1);
+      border: none;
+      border-radius: 2rem;
+      padding: 0 1.2rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .save-url-btn:active {
+      transform: scale(0.96);
+    }
+
+    .input-group {
+      margin: 1.5rem 0 1rem;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #cbd5f0;
+      margin-bottom: 10px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      flex: 2;
+      background: #0b0f1c;
+      border: 1.5px solid #2a3550;
+      border-radius: 2rem;
+      padding: 1rem 1.4rem;
+      font-size: 1rem;
+      font-family: 'SF Mono', monospace;
+      color: #f0f3ff;
+      outline: none;
+      transition: all 0.25s;
+    }
+
+    input:focus {
+      border-color: #c084fc;
+      box-shadow: 0 0 0 4px rgba(192, 132, 252, 0.2);
+      background: #0f1425;
+    }
+
+    .btn-glow {
+      background: linear-gradient(105deg, #6d28d9, #4f46e5);
+      border: none;
+      border-radius: 2.5rem;
+      padding: 0 1.8rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: white;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px -6px #4f46e5;
+    }
+
+    .btn-glow:hover {
+      transform: scale(1.03);
+      background: linear-gradient(105deg, #7c3aed, #6366f1);
+      box-shadow: 0 12px 28px -8px #7c3aed;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid #6c7a9e;
+      border-radius: 2rem;
+      padding: 0 1.2rem;
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: #cbd5f0;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-outline:hover {
+      border-color: #a855f7;
+      color: #e9d5ff;
+      background: #a855f710;
+    }
+
+    .btn-danger {
+      border-color: #f43f5e;
+      color: #fda4af;
+    }
+
+    .btn-danger:hover {
+      border-color: #fb7185;
+      background: #f43f5e20;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .result-premium {
+      background: rgba(2, 5, 15, 0.65);
+      backdrop-filter: blur(12px);
+      border-radius: 2rem;
+      padding: 1.4rem;
+      margin-top: 1.2rem;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      animation: fadeInUp 0.4s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .label-light {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #a0a9c5;
+      margin-bottom: 8px;
+    }
+
+    .link-glass {
+      background: #01050f;
+      padding: 0.9rem 1.2rem;
+      border-radius: 1.5rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      word-break: break-all;
+      color: #90e0ff;
+      border: 0.5px solid #2d3a60;
+      margin: 8px 0 16px 0;
+      white-space: pre-wrap;
+    }
+
+    .key-glow {
+      background: linear-gradient(115deg, #4f46e520, #7c3aed20);
+      padding: 0.8rem 1.2rem;
+      border-radius: 1.5rem;
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #e2d5ff;
+      border: 1px solid #8b5cf6;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      letter-spacing: 0.5px;
+      white-space: pre-wrap;
+    }
+
+    .btn-outline-copy {
+      background: transparent;
+      border: 1.5px solid #22c55e;
+      border-radius: 2rem;
+      padding: 0.7rem 1.4rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #bef264;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-outline-copy:hover {
+      background: #22c55e20;
+      border-color: #4ade80;
+      transform: scale(0.98);
+    }
+
+    .batch-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn-copy-all {
+      background: linear-gradient(105deg, #10b981, #059669);
+      border: none;
+      border-radius: 2rem;
+      padding: 0.7rem 1.4rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: white;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-copy-all:active {
+      transform: scale(0.96);
+    }
+
+    .toast-lux {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #0f172ad9;
+      backdrop-filter: blur(20px);
+      padding: 12px 28px;
+      border-radius: 60px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #d9f99d;
+      border: 1px solid #4ade80;
+      opacity: 0;
+      transition: all 0.25s;
+      pointer-events: none;
+      z-index: 1000;
+      white-space: nowrap;
+      font-family: monospace;
+      box-shadow: 0 10px 20px -8px black;
+    }
+
+    @media (max-width: 550px) {
+      .luxury-card { padding: 1.5rem; }
+      h1 { font-size: 1.8rem; }
+      .btn-glow, .btn-outline { padding: 0.7rem 1rem; font-size: 0.8rem; }
+      .toast-lux { white-space: normal; text-align: center; width: 85%; font-size: 0.75rem; }
+      .input-wrapper button { width: 100%; justify-content: center; }
+      .input-wrapper { flex-direction: column; }
+      .action-buttons { justify-content: center; }
+      .base-url-input-wrapper { flex-direction: column; }
+      .save-url-btn { padding: 0.7rem; }
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 0.7rem;
+      margin-top: 1.8rem;
+      color: #5b6e9e;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="luxury-card">
+    <div class="header">
+      <div class="chip">⚡ GENERATOR TOOL</div>
+      <h1>PROXY LINK<br>CREATOR</h1>
+      <div class="sub">ใส่คีย์เดียว · ได้ลิงก์สำเร็จรูป</div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-header">
+        <span class="settings-title">🔗 ปลายทาง (BASE URL)</span>
+        <button class="reset-default-btn" id="resetDefaultUrlBtn">↺ ใช้ค่าเริ่มต้น</button>
+      </div>
+      <div class="base-url-input-wrapper">
+        <input type="text" id="baseUrlInput" placeholder="https://example.com/">
+        <button class="save-url-btn" id="saveBaseUrlBtn">💾 บันทึก</button>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>🔑 คีย์สำหรับลูกค้า (คั่นด้วยเว้นวรรค)</label>
+      <div class="input-wrapper">
+        <input type="text" id="keyInput" placeholder="CRX-8D92FA-E6F193 CRX-484BA2-4CDAE1 CRX-543522-BE9799" autocomplete="off">
+        <button class="btn-glow" id="genBtn">✨ สร้างลิงก์</button>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="btn-outline" id="pasteBtn">
+          📋 วางจากคลิปบอร์ด
+        </button>
+        <button class="btn-outline btn-danger" id="clearBtn">
+          🗑️ ล้างข้อมูล
+        </button>
+      </div>
+    </div>
+
+    <div id="resultArea" style="display: none;">
+      <div class="result-premium">
+        <div class="label-light">🔗 ลิงก์ที่ส่งให้ลูกค้า</div>
+        <div class="link-glass" id="generatedLink"></div>
+
+        <div class="label-light">🔑 คีย์ที่อยู่ในลิงก์</div>
+        <div class="key-glow" id="displayKey"></div>
+
+        <button class="btn-outline-copy" id="copyLinkBtn">
+          📋 คัดลอก (ลิงก์เดียว/ทั้งหมด)
+        </button>
+
+        <div class="batch-buttons" id="batchCopyContainer" style="display: none;">
+          <button class="btn-copy-all" id="copyAllLinksBtn">
+            📋 คัดลอกทั้งหมด (แยกบรรทัด)
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">
+      ⚡ เมื่อลูกค้าเปิดลิงก์ → คีย์จะแสดงอัตโนมัติ
+    </div>
+  </div>
+</div>
+
+<div id="toastMsg" class="toast-lux">✅ คัดลอกสำเร็จ</div>
+
+<script>
+  const DEFAULT_BASE_URL = "https://magenta-pony-daea85.netlify.app/";
+  
+  let currentBaseUrl = localStorage.getItem('proxy_base_url') || DEFAULT_BASE_URL;
+  let currentKeysList = [];
+  let currentSingleKey = "";
+
+  const baseUrlInput = document.getElementById('baseUrlInput');
+  const saveBaseUrlBtn = document.getElementById('saveBaseUrlBtn');
+  const resetDefaultUrlBtn = document.getElementById('resetDefaultUrlBtn');
+  const keyInput = document.getElementById('keyInput');
+  const genBtn = document.getElementById('genBtn');
+  const pasteBtn = document.getElementById('pasteBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const resultArea = document.getElementById('resultArea');
+  const generatedLinkSpan = document.getElementById('generatedLink');
+  const displayKeySpan = document.getElementById('displayKey');
+  const copyLinkBtn = document.getElementById('copyLinkBtn');
+  const batchCopyContainer = document.getElementById('batchCopyContainer');
+  const copyAllLinksBtn = document.getElementById('copyAllLinksBtn');
+
+  baseUrlInput.value = currentBaseUrl;
+
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toastMsg');
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0px)';
+    if (isError) toast.style.borderColor = '#f87171';
+    else toast.style.borderColor = '#4ade80';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 2200);
+  }
+
+  function normalizeUrl(url) {
+    url = url.trim();
+    if (!url) return DEFAULT_BASE_URL;
+    if (!url.endsWith('/') && !url.includes('?')) {
+      url = url + '/';
+    }
+    return url;
+  }
+
+  function buildLink(key) {
+    let base = normalizeUrl(currentBaseUrl);
+    if (base.includes('?')) {
+      return `${base}&key=${encodeURIComponent(key)}`;
+    } else {
+      return `${base}?key=${encodeURIComponent(key)}`;
+    }
+  }
+
+  function parseKeysBySpace(raw) {
+    let parts = raw.trim().split(/\s+/);
+    let keys = [];
+    for (let p of parts) {
+      p = p.trim();
+      if (p !== "") keys.push(p);
+    }
+    return keys;
+  }
+
+  function updateUIForMultipleKeys(keys) {
+    if (!keys || keys.length === 0) {
+      resultArea.style.display = 'none';
+      return;
+    }
+
+    if (keys.length === 1) {
+      const link = buildLink(keys[0]);
+      generatedLinkSpan.innerText = link;
+      displayKeySpan.innerText = keys[0];
+      copyLinkBtn.innerHTML = '📋 คัดลอกลิงก์';
+      batchCopyContainer.style.display = 'none';
+    } else {
+      let linksText = "";
+      let keysText = "";
+      for (let k of keys) {
+        linksText += buildLink(k) + "\n";
+        keysText += k + "\n";
+      }
+      generatedLinkSpan.innerText = linksText;
+      displayKeySpan.innerText = keysText;
+      copyLinkBtn.innerHTML = '📋 คัดลอกลิงก์แรก';
+      batchCopyContainer.style.display = 'flex';
+    }
+    resultArea.style.display = 'block';
+  }
+
+  function saveBaseUrl() {
+    let newUrl = baseUrlInput.value.trim();
+    if (!newUrl) {
+      showToast('⚠️ กรุณาใส่ URL', true);
+      return;
+    }
+    if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+      showToast('⚠️ URL ต้องขึ้นต้นด้วย http:// หรือ https://', true);
+      return;
+    }
+    currentBaseUrl = newUrl;
+    localStorage.setItem('proxy_base_url', currentBaseUrl);
+    showToast('💾 บันทึก Base URL เรียบร้อย');
+    
+    if (currentKeysList.length > 0) {
+      updateUIForMultipleKeys(currentKeysList);
+    }
+  }
+
+  function resetDefaultUrl() {
+    currentBaseUrl = DEFAULT_BASE_URL;
+    baseUrlInput.value = DEFAULT_BASE_URL;
+    localStorage.setItem('proxy_base_url', DEFAULT_BASE_URL);
+    showToast('↺ รีเซ็ตเป็น Base URL เริ่มต้นแล้ว');
+    if (currentKeysList.length > 0) {
+      updateUIForMultipleKeys(currentKeysList);
+    }
+  }
+
+  genBtn.addEventListener('click', () => {
+    let rawKey = keyInput.value.trim();
+    if (rawKey === "") {
+      showToast("⚠️ กรุณาใส่คีย์ก่อน", true);
+      return;
+    }
+    const keys = parseKeysBySpace(rawKey);
+    if (keys.length === 0) {
+      showToast("⚠️ ไม่พบคีย์ที่ถูกต้อง", true);
+      return;
+    }
+    currentKeysList = keys;
+    currentSingleKey = keys[0];
+    updateUIForMultipleKeys(keys);
+    showToast(`✨ สร้างลิงก์สำหรับ ${keys.length} คีย์`);
+  });
+
+  pasteBtn.addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim() !== "") {
+        keyInput.value = text.trim();
+        showToast(`📋 วางคีย์: ${text.trim().substring(0, 30)}${text.length > 30 ? '…' : ''}`);
+      } else {
+        showToast("❌ ไม่มีข้อความในคลิปบอร์ด", true);
+      }
+    } catch (err) {
+      showToast("❌ ไม่สามารถอ่านคลิปบอร์ดได้ (ต้องอนุญาตก่อน)", true);
+    }
+  });
+
+  function clearAll() {
+    keyInput.value = '';
+    currentKeysList = [];
+    currentSingleKey = "";
+    resultArea.style.display = 'none';
+    showToast('🗑️ ล้างข้อมูลเรียบร้อย');
+  }
+
+  clearBtn.addEventListener('click', clearAll);
+
+  copyLinkBtn.addEventListener('click', () => {
+    if (currentKeysList.length === 0) {
+      showToast("❌ ยังไม่มีคีย์ที่สร้าง", true);
+      return;
+    }
+    
+    if (currentKeysList.length === 1) {
+      const link = buildLink(currentKeysList[0]);
+      navigator.clipboard.writeText(link).then(() => {
+        showToast("📋 คัดลอกลิงก์เรียบร้อย");
+      }).catch(() => showToast("❌ คัดลอกไม่สำเร็จ", true));
+    } else {
+      const link = buildLink(currentKeysList[0]);
+      navigator.clipboard.writeText(link).then(() => {
+        showToast("📋 คัดลอกลิงก์แรกเรียบร้อย");
+      }).catch(() => showToast("❌ คัดลอกไม่สำเร็จ", true));
+    }
+  });
+
+  if (copyAllLinksBtn) {
+    copyAllLinksBtn.addEventListener('click', () => {
+      if (currentKeysList.length === 0) {
+        showToast("❌ ไม่มีลิงก์ให้คัดลอก", true);
+        return;
+      }
+      let allLinks = "";
+      for (let k of currentKeysList) {
+        allLinks += buildLink(k) + "\n";
+      }
+      navigator.clipboard.writeText(allLinks).then(() => {
+        showToast("📋 คัดลอกลิงก์ทั้งหมด (แยกบรรทัด) เรียบร้อย");
+      }).catch(() => showToast("❌ คัดลอกไม่สำเร็จ", true));
+    });
+  }
+
+  saveBaseUrlBtn.addEventListener('click', saveBaseUrl);
+  resetDefaultUrlBtn.addEventListener('click', resetDefaultUrl);
+
+  keyInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') genBtn.click();
+  });
+
+  baseUrlInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') saveBaseUrl();
+  });
+</script>
+</body>
+</html>
