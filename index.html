@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการลิงก์ตัวแทน</title>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        body { background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 24px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
+        h1 { font-size: 1.6rem; margin-top: 0; margin-bottom: 8px; }
+        h2 { font-size: 1.3rem; margin: 0 0 16px 0; border-left: 4px solid #0f3460; padding-left: 12px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+        label { display: block; font-weight: 600; margin-top: 12px; margin-bottom: 6px; }
+        input, select, textarea { width: 100%; padding: 10px 14px; border: 1px solid #ccc; border-radius: 16px; }
+        button { background: #0f3460; color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+        button:hover { background: #1a4a7a; }
+        .btn-outline { background: #e9ecef; color: #1e2a3a; border: 1px solid #ccc; }
+        .btn-danger { background: #dc2626; }
+        .key-list { background: #f8f9fa; border-radius: 20px; padding: 0; list-style: none; }
+        .key-item { background: white; border: 1px solid #e9ecef; border-radius: 16px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .key-code { font-family: monospace; background: #f1f3f5; padding: 6px 12px; border-radius: 40px; font-size: 13px; }
+        .badge { background: #e9ecef; padding: 4px 12px; border-radius: 30px; font-size: 12px; }
+        .alert { background: #d4edda; color: #155724; padding: 12px; border-radius: 20px; margin-bottom: 20px; border-left: 4px solid #28a745; }
+        .alert-error { background: #f8d7da; color: #721c24; border-left-color: #dc2626; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .admin-badge { background: #ffedd5; color: #b45309; font-size: 12px; padding: 2px 12px; border-radius: 20px; }
+        hr { margin: 20px 0; }
+        .link-box { background: #edf2f7; padding: 10px; border-radius: 16px; word-break: break-all; font-family: monospace; font-size: 13px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<script>
+    // ========== CONFIG ==========
+    const BASE_URL = window.location.origin + window.location.pathname;  // อัตโนมัติ
+    const ADMIN_SECRET = "myadmin123";  // รหัสลับ admin
+    
+    // ข้อมูลหลัก: แต่ละตัวแทนจะมี agentId (ชื่อ) และ secretCode (รหัสสำหรับเข้าลิงก์)
+    let agents = [];      // [{ id: "สมชาย", code: "agent001" }, { id: "อ้อม", code: "agent002" }]
+    let keys = [];        // [{ key: "CRX-xxx", agentId: "สมชาย" }]
+    
+    let isAdminMode = false;
+    
+    // ========== Utility ==========
+    function saveToLocal() {
+        localStorage.setItem("agent_system_agents", JSON.stringify(agents));
+        localStorage.setItem("agent_system_keys", JSON.stringify(keys));
+    }
+    
+    function loadData() {
+        const storedAgents = localStorage.getItem("agent_system_agents");
+        const storedKeys = localStorage.getItem("agent_system_keys");
+        if(storedAgents) agents = JSON.parse(storedAgents);
+        if(storedKeys) keys = JSON.parse(storedKeys);
+        if(!agents.length) {
+            // ข้อมูลตัวอย่าง พร้อมรหัสเฉพาะตัวแทน
+            agents = [
+                { id: "สมชาย", code: "agent_somchai" },
+                { id: "อ้อม", code: "agent_om" },
+                { id: "ฝ่ายขาย A", code: "agent_salesteamA" }
+            ];
+            keys = [
+                { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
+                { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
+                { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
+                { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
+                { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
+                { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" },
+                { key: "CRX-A59FF7-18D9FE", agentId: "สมชาย" },
+                { key: "CRX-B54D1B-EBB153", agentId: "อ้อม" },
+                { key: "CRX-D719C6-654506", agentId: "ฝ่ายขาย A" }
+            ];
+            saveToLocal();
+        }
+    }
+    
+    // ดึง agent จาก URL parameter ?agent=xxx
+    function getAgentFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const agentCode = params.get("agent");
+        if(agentCode) {
+            const found = agents.find(a => a.code === agentCode);
+            return found || null;
+        }
+        return null;
+    }
+    
+    function checkAdminFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        if(params.get("admin") === ADMIN_SECRET) {
+            isAdminMode = true;
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+            return true;
+        }
+        return false;
+    }
+    
+    // ========== AGENT VIEW (ตัวแทนเห็นเฉพาะของตัวเอง) ==========
+    function renderAgentPage(agent) {
+        const agentKeys = keys.filter(k => k.agentId === agent.id);
+        const agentLinkExample = `${BASE_URL}?agent=${agent.code}`;
+        
+        return `
+            <div class="card">
+                <h1>🔗 หน้าคัดลอกลิงก์สำหรับตัวแทน</h1>
+                <div class="alert">
+                    ✅ สวัสดีคุณ <strong>${escapeHtml(agent.id)}</strong><br>
+                    ลิงก์ส่วนตัวของคุณคือ: <span style="font-family:monospace;">${escapeHtml(agentLinkExample)}</span><br>
+                    <small>🔒 ตัวแทนคนอื่นไม่สามารถเห็นลิงก์ของคุณได้</small>
+                </div>
+                
+                ${agentKeys.length === 0 ? 
+                    `<div class="alert alert-error">⚠️ คุณยังไม่มีคีย์ กรุณาติดต่อ Admin</div>` : 
+                    `<h2>📋 คีย์ที่ต้องส่งให้ลูกค้า (${agentKeys.length} รายการ)</h2>`
+                }
+                
+                <div id="linksArea">
+                    ${agentKeys.map(item => {
+                        const fullLink = `${BASE_URL}?key=${encodeURIComponent(item.key)}`;
+                        return `
+                            <div style="background:#f8f9fa; border-radius:16px; padding:12px; margin-bottom:12px;">
+                                <div class="flex-between">
+                                    <span class="key-code">🔑 ${escapeHtml(item.key)}</span>
+                                    <button class="copySingleLink btn-outline" data-link="${escapeHtml(fullLink)}" style="margin:0;">📋 คัดลอกลิงก์นี้</button>
+                                </div>
+                                <div class="link-box">${escapeHtml(fullLink)}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                ${agentKeys.length > 0 ? `
+                    <hr>
+                    <div class="flex-between">
+                        <button id="copyAllBtn" class="btn-outline">📋 คัดลอกลิงก์ทั้งหมด (${agentKeys.length} รายการ)</button>
+                        <span style="font-size:13px;">🔐 Admin? <a href="#" id="goToAdminLink">เข้าสู่หน้า Admin</a></span>
+                    </div>
+                ` : `
+                    <div style="margin-top:20px;">
+                        <span style="font-size:13px;">🔐 Admin? <a href="#" id="goToAdminLink">เข้าสู่หน้า Admin</a></span>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+    
+    function bindAgentEvents(agent) {
+        const agentKeys = keys.filter(k => k.agentId === agent.id);
+        
+        // คัดลอกทีละอัน
+        document.querySelectorAll('.copySingleLink').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const link = btn.getAttribute('data-link');
+                navigator.clipboard.writeText(link);
+                alert("✅ คัดลอกลิงก์แล้ว");
+            });
+        });
+        
+        // คัดลอกทั้งหมด
+        const copyAllBtn = document.getElementById("copyAllBtn");
+        if(copyAllBtn) {
+            copyAllBtn.addEventListener('click', () => {
+                const allLinks = agentKeys.map(k => `${BASE_URL}?key=${encodeURIComponent(k.key)}`).join("\n");
+                navigator.clipboard.writeText(allLinks);
+                alert(`✅ คัดลอก ${agentKeys.length} ลิงก์ทั้งหมดแล้ว`);
+            });
+        }
+        
+        // ลิงก์ไปหน้า Admin
+        const goToAdmin = document.getElementById("goToAdminLink");
+        if(goToAdmin) {
+            goToAdmin.addEventListener("click", (e) => {
+                e.preventDefault();
+                const pwd = prompt("กรุณากรอกรหัสผ่าน Admin:");
+                if(pwd === ADMIN_SECRET) {
+                    isAdminMode = true;
+                    renderApp();
+                } else alert("รหัสผ่านไม่ถูกต้อง");
+            });
+        }
+    }
+    
+    // ========== ADMIN PAGE ==========
+    function renderAdminPage() {
+        return `
+            <div class="card">
+                <div class="flex-between">
+                    <h1>🔐 แผงควบคุม Admin <span class="admin-badge">โหมดผู้ดูแล</span></h1>
+                    <button id="logoutAdminBtn" class="btn-outline">🚪 ออกจากโหมด Admin</button>
+                </div>
+                <p>✅ จัดการตัวแทนและคีย์ต่างๆ</p>
+                <div class="alert">
+                    💡 <strong>วิธีส่งลิงก์ให้ตัวแทน:</strong><br>
+                    แต่ละตัวแทนมีลิงก์เฉพาะตัว เช่น <code>${BASE_URL}?agent=agent_somchai</code><br>
+                    ให้ส่งลิงก์นี้ไปให้ตัวแทนคนนั้นเลย เขาจะเห็นเฉพาะคีย์ของตัวเองเท่านั้น
+                </div>
+            </div>
+            <div class="grid-2">
+                <div class="card">
+                    <h2>📋 จัดการคีย์</h2>
+                    <label>เลือกตัวแทน</label>
+                    <select id="adminAgentSelect">
+                        <option value="">-- เลือกตัวแทน --</option>
+                        ${agents.map(ag => `<option value="${escapeHtml(ag.id)}">${escapeHtml(ag.id)}</option>`).join('')}
+                    </select>
+                    <div class="flex-between" style="gap:8px; margin-top:8px;">
+                        <input type="text" id="newAgentName" placeholder="ชื่อตัวแทนใหม่" style="flex:2;">
+                        <input type="text" id="newAgentCode" placeholder="รหัสเฉพาะ (เช่น agent_new)" style="flex:2;">
+                        <button id="addAgentBtn" class="btn-outline" style="margin-top:0;">➕ เพิ่มตัวแทน</button>
+                    </div>
+                    <label>รหัสคีย์ (Key)</label>
+                    <input type="text" id="newKey" placeholder="เช่น CRX-9723E7-17DD78">
+                    <button id="addKeyBtn">➕ เพิ่มคีย์ให้ตัวแทน</button>
+                    <hr>
+                    <h3>📌 รายการคีย์ทั้งหมด</h3>
+                    <div id="adminKeysList" style="max-height:400px; overflow-y:auto;"></div>
+                    <button id="exportDataBtn" class="btn-outline" style="margin-top:12px;">📎 ส่งออกข้อมูล JSON</button>
+                    <button id="resetDemoBtn" class="btn-outline" style="margin-left:8px;">🔄 โหลดตัวอย่าง</button>
+                </div>
+                <div class="card">
+                    <h2>👥 จัดการตัวแทน + ลิงก์เฉพาะ</h2>
+                    <div id="agentListAdmin"></div>
+                    <button id="clearAllAgentsBtn" class="btn-danger" style="background:#dc2626;">⚠️ ลบตัวแทนทั้งหมด</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderAdminKeysList() {
+        const container = document.getElementById("adminKeysList");
+        if(!container) return;
+        if(keys.length === 0) {
+            container.innerHTML = '<div class="alert">ยังไม่มีคีย์</div>';
+            return;
+        }
+        let html = '<ul class="key-list">';
+        keys.forEach((item, idx) => {
+            html += `
+                <li class="key-item">
+                    <div><span class="key-code">${escapeHtml(item.key)}</span> <span class="badge">👤 ${escapeHtml(item.agentId)}</span></div>
+                    <button class="deleteAdminKey" data-index="${idx}" style="background:#e74c3c; color:white; border:none; padding:6px 12px; border-radius:40px;">🗑️ ลบ</button>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+        document.querySelectorAll('.deleteAdminKey').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(btn.getAttribute('data-index'));
+                if(confirm("ลบคีย์นี้?")) {
+                    keys.splice(idx,1);
+                    saveToLocal();
+                    renderAdminKeysList();
+                    renderAgentListAdmin();
+                }
+            });
+        });
+    }
+    
+    function renderAgentListAdmin() {
+        const container = document.getElementById("agentListAdmin");
+        if(!container) return;
+        if(agents.length === 0) {
+            container.innerHTML = '<div class="alert">ยังไม่มีตัวแทน</div>';
+            return;
+        }
+        let html = '<ul class="key-list">';
+        agents.forEach((ag, idx) => {
+            const keyCount = keys.filter(k => k.agentId === ag.id).length;
+            const agentLink = `${BASE_URL}?agent=${ag.code}`;
+            html += `
+                <li class="key-item" style="flex-direction:column; align-items:stretch;">
+                    <div class="flex-between">
+                        <div><strong>${escapeHtml(ag.id)}</strong> (${keyCount} คีย์)</div>
+                        <button class="deleteAgentBtn" data-agentid="${escapeHtml(ag.id)}" style="background:#dc2626; color:white; border:none; padding:6px 12px; border-radius:40px;">ลบตัวแทน</button>
+                    </div>
+                    <div style="font-size:12px; background:#edf2f7; padding:8px; border-radius:12px; margin-top:8px;">
+                        🔗 ลิงก์สำหรับตัวแทน: <span style="font-family:monospace;">${escapeHtml(agentLink)}</span>
+                        <button class="copyAgentLinkBtn" data-link="${escapeHtml(agentLink)}" style="margin:0 0 0 8px; padding:4px 12px; font-size:11px;">📋 คัดลอก</button>
+                    </div>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.deleteAgentBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const agentId = btn.getAttribute('data-agentid');
+                if(confirm(`ลบตัวแทน "${agentId}"? คีย์ที่เกี่ยวข้องจะถูกลบด้วย`)) {
+                    agents = agents.filter(a => a.id !== agentId);
+                    keys = keys.filter(k => k.agentId !== agentId);
+                    saveToLocal();
+                    renderAdminKeysList();
+                    renderAgentListAdmin();
+                    const select = document.getElementById("adminAgentSelect");
+                    if(select) {
+                        select.innerHTML = `<option value="">-- เลือกตัวแทน --</option>${agents.map(ag => `<option value="${escapeHtml(ag.id)}">${escapeHtml(ag.id)}</option>`).join('')}`;
+                    }
+                }
+            });
+        });
+        
+        document.querySelectorAll('.copyAgentLinkBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const link = btn.getAttribute('data-link');
+                navigator.clipboard.writeText(link);
+                alert("✅ คัดลอกลิงก์สำหรับตัวแทนแล้ว");
+            });
+        });
+    }
+    
+    function bindAdminEvents() {
+        document.getElementById("addAgentBtn")?.addEventListener("click", () => {
+            const newName = document.getElementById("newAgentName").value.trim();
+            const newCode = document.getElementById("newAgentCode").value.trim();
+            if(!newName) return alert("กรอกชื่อตัวแทน");
+            if(!newCode) return alert("กรอกรหัสเฉพาะตัวแทน (เช่น agent_somchai)");
+            if(agents.some(a => a.id === newName)) return alert("ชื่อตัวแทนซ้ำ");
+            if(agents.some(a => a.code === newCode)) return alert("รหัสเฉพาะนี้ซ้ำแล้ว");
+            agents.push({ id: newName, code: newCode });
+            saveToLocal();
+            document.getElementById("newAgentName").value = "";
+            document.getElementById("newAgentCode").value = "";
+            const select = document.getElementById("adminAgentSelect");
+            if(select) select.innerHTML = `<option value="">-- เลือกตัวแทน --</option>${agents.map(ag => `<option value="${escapeHtml(ag.id)}">${escapeHtml(ag.id)}</option>`).join('')}`;
+            renderAgentListAdmin();
+        });
+        
+        document.getElementById("addKeyBtn")?.addEventListener("click", () => {
+            const agentId = document.getElementById("adminAgentSelect").value;
+            if(!agentId) return alert("เลือกตัวแทนก่อน");
+            const keyRaw = document.getElementById("newKey").value.trim();
+            if(!keyRaw) return alert("กรอกรหัสคีย์");
+            if(keys.some(k => k.key === keyRaw)) return alert("คีย์ซ้ำ");
+            keys.push({ key: keyRaw, agentId: agentId });
+            saveToLocal();
+            document.getElementById("newKey").value = "";
+            renderAdminKeysList();
+            renderAgentListAdmin();
+        });
+        
+        document.getElementById("exportDataBtn")?.addEventListener("click", () => {
+            const dataStr = JSON.stringify({agents, keys, baseUrl: BASE_URL}, null,2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `agent_backup_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+        
+        document.getElementById("resetDemoBtn")?.addEventListener("click", () => {
+            if(confirm("โหลดตัวอย่างข้อมูล (ลบข้อมูลเดิม)?")) {
+                agents = [
+                    { id: "สมชาย", code: "agent_somchai" },
+                    { id: "อ้อม", code: "agent_om" },
+                    { id: "ฝ่ายขาย A", code: "agent_salesteamA" }
+                ];
+                keys = [
+                    { key: "CRX-9723E7-17DD78", agentId: "สมชาย" },
+                    { key: "CRX-EC7B9F-EC39F8", agentId: "สมชาย" },
+                    { key: "CRX-EB516D-EA448E", agentId: "อ้อม" },
+                    { key: "CRX-8FCBBA-9B2662", agentId: "อ้อม" },
+                    { key: "CRX-FC39FA-9D82FA", agentId: "ฝ่ายขาย A" },
+                    { key: "CRX-9AFFD7-117C6B", agentId: "ฝ่ายขาย A" },
+                    { key: "CRX-A59FF7-18D9FE", agentId: "สมชาย" },
+                    { key: "CRX-B54D1B-EBB153", agentId: "อ้อม" },
+                    { key: "CRX-D719C6-654506", agentId: "ฝ่ายขาย A" }
+                ];
+                saveToLocal();
+                renderAdminKeysList();
+                renderAgentListAdmin();
+                const select = document.getElementById("adminAgentSelect");
+                if(select) select.innerHTML = `<option value="">-- เลือกตัวแทน --</option>${agents.map(ag => `<option value="${escapeHtml(ag.id)}">${escapeHtml(ag.id)}</option>`).join('')}`;
+            }
+        });
+        
+        document.getElementById("clearAllAgentsBtn")?.addEventListener("click", () => {
+            if(confirm("ลบตัวแทนทั้งหมด? คีย์จะหายไปด้วย")) {
+                agents = [];
+                keys = [];
+                saveToLocal();
+                renderAdminKeysList();
+                renderAgentListAdmin();
+                const select = document.getElementById("adminAgentSelect");
+                if(select) select.innerHTML = '<option value="">-- เลือกตัวแทน --</option>';
+            }
+        });
+        
+        document.getElementById("logoutAdminBtn")?.addEventListener("click", () => {
+            isAdminMode = false;
+            renderApp();
+        });
+    }
+    
+    // ========== MAIN ==========
+    function renderApp() {
+        const app = document.getElementById("app");
+        
+        if(isAdminMode) {
+            app.innerHTML = renderAdminPage();
+            renderAdminKeysList();
+            renderAgentListAdmin();
+            bindAdminEvents();
+            return;
+        }
+        
+        // โหมดตัวแทน: ดูจาก URL parameter ?agent=xxx
+        const agentFromURL = getAgentFromURL();
+        if(agentFromURL) {
+            app.innerHTML = renderAgentPage(agentFromURL);
+            bindAgentEvents(agentFromURL);
+        } else {
+            // ไม่มี ?agent และ ไม่ใช่ admin -> แสดงหน้าต้อนรับ พร้อมวิธีเข้า
+            app.innerHTML = `
+                <div class="card">
+                    <h1>🔗 ระบบลิงก์สำหรับตัวแทน</h1>
+                    <div class="alert alert-error" style="background:#fff3cd; border-left-color:#ffc107;">
+                        ⚠️ ไม่พบข้อมูลตัวแทน กรุณาใช้ลิงก์ที่ Admin ส่งให้เท่านั้น
+                    </div>
+                    <p>🔐 <strong>สำหรับตัวแทน:</strong> คุณควรได้รับลิงก์เฉพาะจาก Admin เช่น <code>${BASE_URL}?agent=agent_somchai</code></p>
+                    <p>👑 <strong>สำหรับ Admin:</strong> <a href="#" id="adminLoginLink">คลิกที่นี่เพื่อเข้าสู่ระบบ Admin</a></p>
+                </div>
+            `;
+            const adminLink = document.getElementById("adminLoginLink");
+            if(adminLink) {
+                adminLink.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const pwd = prompt("รหัสผ่าน Admin:");
+                    if(pwd === ADMIN_SECRET) {
+                        isAdminMode = true;
+                        renderApp();
+                    } else alert("รหัสผ่านผิด");
+                });
+            }
+        }
+    }
+    
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // เริ่มต้น
+    loadData();
+    checkAdminFromURL();
+    renderApp();
+</script>
+</body>
+</html>
