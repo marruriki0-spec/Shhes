@@ -1,987 +1,906 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-  <meta name="description" content="เครื่องมือสร้างลิงก์จากคีย์ระดับองค์กร">
-  <meta name="theme-color" content="#1a0e2e">
-  <title>สร้างลิงก์จากคีย์ Pro | รุ่นองค์กร</title>
-  
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Proxy Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-  <style>
-    :root {
-      --bg-primary: #0a0618;
-      --bg-secondary: #1a0e2e;
-      --bg-glass: rgba(20, 12, 40, 0.45);
-      --text-primary: #e0d9f5;
-      --text-secondary: #b7a4dd;
-      --accent-primary: #b57aff;
-      --accent-secondary: #c084fc;
-      --accent-glow: #a855f7;
-      --border-glass: rgba(180, 130, 255, 0.25);
-      --card-bg: rgba(22, 12, 42, 0.7);
-    }
+        body {
+            font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+            background: radial-gradient(circle at 10% 20%, #0a0f1e, #03060c);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 70% 30%, rgba(0, 150, 255, 0.12), transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
 
-    body {
-      font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
-      background: radial-gradient(circle at 20% 20%, var(--bg-secondary), var(--bg-primary));
-      min-height: 100vh;
-      padding: 1rem;
-      color: var(--text-primary);
-    }
+        .card {
+            position: relative;
+            z-index: 2;
+            max-width: 580px;
+            width: 100%;
+            background: rgba(18, 25, 45, 0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 56px;
+            padding: 40px 32px;
+            border: 1px solid rgba(100, 180, 255, 0.25);
+            box-shadow: 0 32px 70px -20px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(100, 200, 255, 0.1) inset;
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            animation: fadeUp 0.6s ease-out, floatCard 5s infinite alternate ease-in-out;
+        }
 
-    .app-container {
-      width: 100%;
-      max-width: 1400px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 1.2rem;
-    }
+        @keyframes floatCard {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-8px); }
+        }
 
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-      background: var(--bg-glass);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
-      border-radius: 2rem;
-      padding: 1.2rem 1.8rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(168,85,247,0.4);
-    }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
+        .badge-new {
+            display: inline-block;
+            background: rgba(80, 160, 255, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 590;
+            color: #a0d0ff;
+            margin-bottom: 20px;
+            border: 0.5px solid rgba(80, 160, 255, 0.4);
+        }
 
-    .logo-icon {
-      font-size: 2rem;
-      color: var(--accent-secondary);
-      filter: drop-shadow(0 0 10px var(--accent-glow));
-    }
+        h1 {
+            font-size: 38px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #b8dcff, #6eb0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
 
-    .header-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--accent-secondary), #e0b0ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+        .subtext {
+            color: #8ba0c0;
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
 
-    .badge {
-      padding: 0.2rem 0.6rem;
-      border-radius: 1rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      background: rgba(16,185,129,0.3);
-      color: #6bff8e;
-    }
+        .video-card {
+            border-radius: 38px;
+            overflow: hidden;
+            margin-bottom: 28px;
+            box-shadow: 0 20px 35px -12px black;
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+        }
 
-    .btn {
-      padding: 0.6rem 1.3rem;
-      border-radius: 2.5rem;
-      border: 1px solid var(--border-glass);
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      color: var(--text-primary);
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.25s;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
+        .video-card iframe {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            display: block;
+        }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 24px rgba(168,85,247,0.4);
-      border-color: var(--accent-secondary);
-    }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-      border-color: #a78bfa;
-      color: white;
-    }
+        .btn-primary {
+            background: linear-gradient(95deg, #0c1f38, #071528);
+            border: 1px solid #3c7bcb;
+            padding: 18px;
+            border-radius: 80px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #d2edff;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
 
-    .btn-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      border-color: #f87171;
-      color: white;
-    }
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
 
-    .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8rem; }
-    .btn-xs { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+        .btn-primary .icon-img {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            background-image: url('https://i.postimg.cc/dhhyDTfG/IMG-0840.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            vertical-align: middle;
+        }
 
-    .main-content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
+        .btn-facebook {
+            background: rgba(24, 119, 242, 0.15);
+            border: 1px solid #1877f2;
+            padding: 15px;
+            border-radius: 80px;
+            font-size: 16px;
+            font-weight: 550;
+            color: #9ac4ff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
 
-    @media (max-width: 900px) {
-      .main-content { grid-template-columns: 1fr; }
-    }
+        .btn-facebook:active {
+            transform: scale(0.97);
+        }
 
-    .panel {
-      background: var(--bg-glass);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
-      border-radius: 1.5rem;
-      padding: 1.2rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+        .facebook-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            background-image: url('https://i.postimg.cc/SJjBXTN0/facebook-icon.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(0 0 2px #1877f2);
+        }
+        
+        /* ปุ่ม Discord ที่เพิ่มใหม่ */
+        .btn-discord {
+            background: rgba(88, 101, 242, 0.15);
+            border: 1px solid #5865f2;
+            padding: 15px;
+            border-radius: 80px;
+            font-size: 16px;
+            font-weight: 550;
+            color: #b8c0ff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
 
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
+        .btn-discord:active {
+            transform: scale(0.97);
+        }
 
-    .panel-title {
-      font-weight: 700;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+        .discord-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            background-image: url('https://cdn-icons-png.flaticon.com/512/5968/5968756.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
 
-    textarea {
-      width: 100%;
-      min-height: 200px;
-      background: rgba(10, 5, 22, 0.6);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-glass);
-      border-radius: 1.2rem;
-      padding: 1rem;
-      font-size: 0.9rem;
-      color: var(--text-primary);
-      font-family: 'Courier New', monospace;
-      outline: none;
-      resize: vertical;
-      transition: all 0.3s;
-    }
+        .footer-note {
+            text-align: center;
+            font-size: 10px;
+            color: #5a6e88;
+            margin-top: 28px;
+        }
 
-    textarea:focus {
-      border-color: var(--accent-secondary);
-      box-shadow: 0 0 20px var(--accent-glow);
-    }
+        .change-method-btn {
+            background: transparent;
+            border: 1px solid #8ba0c0;
+            border-radius: 40px;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #8ba0c0;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: 0.2s;
+            width: auto;
+            display: inline-block;
+        }
 
-    .link-list-container {
-      max-height: 400px;
-      overflow-y: auto;
-      border-radius: 1rem;
-      background: rgba(8, 4, 20, 0.4);
-      border: 1px solid var(--border-glass);
-    }
+        .change-method-btn:active {
+            transform: scale(0.96);
+            background: rgba(139, 160, 192, 0.2);
+        }
 
-    .link-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      transition: all 0.2s;
-      flex-wrap: wrap;
-    }
+        .key-banner {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(80, 160, 255, 0.5);
+            border-radius: 28px;
+            padding: 18px 22px;
+            margin-bottom: 28px;
+            backdrop-filter: blur(8px);
+        }
 
-    .link-item:hover {
-      background: rgba(120, 70, 210, 0.15);
-    }
+        .key-banner-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #8ba0c0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
 
-    .link-item .checkbox {
-      accent-color: var(--accent-primary);
-      width: 1.1rem;
-      height: 1.1rem;
-      cursor: pointer;
-    }
+        .key-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
 
-    .link-item .link-text {
-      flex: 1;
-      font-family: 'Courier New', monospace;
-      font-size: 0.85rem;
-      word-break: break-all;
-      min-width: 0;
-    }
+        .key-banner-text {
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            color: #c0e0ff;
+            word-break: break-all;
+            flex: 1;
+            letter-spacing: 0.3px;
+        }
 
-    .item-actions {
-      display: flex;
-      gap: 0.3rem;
-    }
+        .copy-btn-small {
+            background: linear-gradient(95deg, #1a3355, #0f1e38);
+            border: 1px solid #3c7bcb;
+            padding: 8px 20px;
+            border-radius: 60px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #d2edff;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
 
-    .search-input {
-      width: 100%;
-      padding: 0.7rem 1.2rem;
-      border-radius: 2rem;
-      border: 1px solid var(--border-glass);
-      background: rgba(10,5,22,0.5);
-      color: var(--text-primary);
-      outline: none;
-      backdrop-filter: blur(8px);
-      transition: 0.3s;
-    }
+        .copy-btn-small:active {
+            transform: scale(0.95);
+        }
 
-    .search-input:focus {
-      border-color: var(--accent-secondary);
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
+        .copy-btn-small.copied {
+            background: #1e4a3b;
+            border-color: #2ecc71;
+            color: #a0ffd0;
+        }
 
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      align-items: center;
-    }
+        .admin-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 100, 100, 0.6);
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 28px;
+        }
 
-    .divider {
-      width: 1px;
-      height: 24px;
-      background: var(--border-glass);
-      margin: 0 0.3rem;
-    }
+        .admin-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ff8888;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    .toast-container {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      z-index: 9999;
-    }
+        .admin-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,100,100,0.3);
+        }
 
-    .toast {
-      background: var(--bg-glass);
-      backdrop-filter: blur(24px);
-      border: 1px solid var(--border-glass);
-      border-radius: 2.5rem;
-      padding: 0.8rem 1.5rem;
-      font-weight: 500;
-      box-shadow: 0 0 24px rgba(168,85,247,0.4);
-      animation: slideIn 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+        .admin-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
 
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(80px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
+        .admin-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffaaaa;
+            margin-bottom: 8px;
+        }
 
-    .drop-zone {
-      border: 2px dashed var(--border-glass);
-      border-radius: 1.5rem;
-      padding: 1.5rem;
-      text-align: center;
-      transition: all 0.3s;
-      cursor: pointer;
-    }
+        .admin-input-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
 
-    .drop-zone.drag-over {
-      border-color: var(--accent-secondary);
-      background: rgba(168,85,247,0.1);
-    }
+        .admin-input-group input {
+            flex: 2;
+            background: #0b0f1c;
+            border: 1px solid #ff8888;
+            border-radius: 2rem;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-family: monospace;
+            color: white;
+            outline: none;
+        }
 
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
+        .admin-input-group input:focus {
+            border-color: #ff5555;
+            box-shadow: 0 0 0 3px rgba(255, 100, 100, 0.2);
+        }
 
-    .modal-content {
-      background: var(--bg-glass);
-      backdrop-filter: blur(24px);
-      border: 1px solid var(--border-glass);
-      border-radius: 2rem;
-      padding: 2rem;
-      max-width: 90vw;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 24px rgba(168,85,247,0.4);
-    }
+        .admin-save-btn {
+            background: linear-gradient(95deg, #7a1a1a, #4a0f0f);
+            border: 1px solid #ff6666;
+            padding: 10px 20px;
+            border-radius: 60px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffcccc;
+            cursor: pointer;
+        }
 
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 3px; }
+        .admin-save-btn:active {
+            transform: scale(0.96);
+        }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-    }
+        .admin-note {
+            font-size: 11px;
+            color: #ffaaaa;
+            margin-top: 10px;
+        }
 
-    .stat-card {
-      background: var(--bg-glass);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
-      border-radius: 1.5rem;
-      padding: 1.2rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    }
+        .choice-modal .modal-container {
+            max-width: 380px;
+        }
 
-    .stat-icon {
-      font-size: 2rem;
-      width: 50px;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 1rem;
-      background: var(--card-bg);
-    }
+        .choice-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
 
-    .stat-value {
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
+        .choice-btn {
+            background: linear-gradient(95deg, #1a2a4a, #0f1a30);
+            border: 1px solid #3c7bcb;
+            padding: 14px 20px;
+            border-radius: 60px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #d2edff;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
 
-    .stat-label {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-top: 0.2rem;
-    }
+        .choice-btn:active {
+            transform: scale(0.97);
+        }
 
-    .baseurl-section {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--bg-glass);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-glass);
-      border-radius: 2rem;
-      padding: 0.6rem 1.2rem;
-    }
+        .choice-btn.wifi {
+            border-color: #22c55e;
+            color: #bef264;
+        }
 
-    .baseurl-input {
-      flex: 1;
-      background: rgba(10,5,22,0.6);
-      border: 1px solid var(--border-glass);
-      border-radius: 2rem;
-      padding: 0.5rem 1rem;
-      color: var(--text-primary);
-      font-family: monospace;
-      outline: none;
-      min-width: 200px;
-    }
+        .choice-btn.proxy {
+            border-color: #f97316;
+            color: #fdba74;
+        }
 
-    .baseurl-input:focus {
-      border-color: var(--accent-secondary);
-      box-shadow: 0 0 12px var(--accent-glow);
-    }
-  </style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(16px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-container {
+            background: rgba(18, 25, 45, 0.95);
+            backdrop-filter: blur(24px);
+            border-radius: 48px;
+            padding: 32px 28px;
+            max-width: 340px;
+            width: 85%;
+            text-align: center;
+            border: 1px solid rgba(100, 180, 255, 0.4);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: scale(1);
+        }
+
+        .modal-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffd966;
+            margin-bottom: 12px;
+        }
+
+        .modal-message {
+            font-size: 16px;
+            color: #c0d4f0;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+
+        .modal-btn {
+            background: linear-gradient(95deg, #1a4a7a, #0f2e4a);
+            border: none;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+
+        .toast-notify {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #0f172ad9;
+            backdrop-filter: blur(20px);
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #d9f99d;
+            border: 1px solid #4ade80;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 1001;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+    </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- ส่วนหัว -->
-    <header class="header">
-      <div class="header-left">
-        <i class="fas fa-bolt logo-icon"></i>
-        <span class="header-title">สร้างลิงก์จากคีย์ Pro</span>
-        <span class="badge">v3.0 องค์กร</span>
-      </div>
-      <div class="toolbar">
-        <button class="btn btn-sm" onclick="undoAction()"><i class="fas fa-undo"></i> เลิกทำ</button>
-        <button class="btn btn-sm" id="backupBtn"><i class="fas fa-cloud-upload-alt"></i> สำรองข้อมูล</button>
-        <button class="btn btn-sm" id="restoreBtn"><i class="fas fa-cloud-download-alt"></i> กู้คืน</button>
-      </div>
-    </header>
+<div class="card" id="app"></div>
 
-    <!-- ตัวแก้ไข Base URL -->
-    <div class="baseurl-section">
-      <label style="font-weight:600;white-space:nowrap;"><i class="fas fa-globe"></i> Base URL:</label>
-      <input type="text" id="baseUrlInput" class="baseurl-input" value="https://marruriki0-spec.github.io/Shhes/">
-      <button class="btn btn-sm btn-primary" id="saveBaseUrlBtn"><i class="fas fa-save"></i> บันทึก</button>
+<div class="modal-overlay" id="warningModal">
+    <div class="modal-container">
+        <div class="modal-icon">🎥</div>
+        <div class="modal-title">โปรดทราบ</div>
+        <div class="modal-message">กรุณาดูคลิปใช้งานก่อนทักถาม</div>
+        <button class="modal-btn" id="modalOkBtn">ตกลง</button>
     </div>
+</div>
 
-    <!-- สถิติ -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,#667eea,#764ba2);">🔑</div>
-        <div>
-          <div class="stat-value" id="totalKeysStat">0</div>
-          <div class="stat-label">คีย์ทั้งหมด</div>
+<div class="modal-overlay choice-modal" id="choiceModal">
+    <div class="modal-container">
+        <div class="modal-icon">📱</div>
+        <div class="modal-title">เลือกวิธีการติดตั้ง</div>
+        <div class="modal-message">กรุณาเลือกประเภทการเชื่อมต่อที่คุณใช้</div>
+        <div class="choice-buttons">
+            <button class="choice-btn wifi" id="wifiChoiceBtn">
+                📡 ลงผ่าน WiFi / เน็ตบ้าน
+            </button>
+            <button class="choice-btn proxy" id="proxyChoiceBtn">
+                🔌 ลงผ่าน Proxy pin (เน็ตมือถือ)
+            </button>
         </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,#f093fb,#f5576c);">🔄</div>
-        <div>
-          <div class="stat-value" id="duplicateKeysStat">0</div>
-          <div class="stat-label">คีย์ซ้ำ</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" style="background:linear-gradient(135deg,#4facfe,#00f2fe);">🔗</div>
-        <div>
-          <div class="stat-value" id="totalLinksStat">0</div>
-          <div class="stat-label">ลิงก์ที่สร้าง</div>
-        </div>
-      </div>
     </div>
+</div>
 
-    <!-- เนื้อหาหลัก -->
-    <div class="main-content">
-      <!-- แผงซ้าย -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title"><i class="fas fa-keyboard"></i> ป้อนคีย์</span>
-          <div class="toolbar">
-            <button class="btn btn-sm" id="importTxtBtn"><i class="fas fa-file-import"></i> TXT</button>
-            <button class="btn btn-sm" id="importCsvBtn"><i class="fas fa-file-csv"></i> CSV</button>
-            <button class="btn btn-sm" id="pasteBtn"><i class="fas fa-paste"></i> วาง</button>
-            <button class="btn btn-sm btn-danger" id="clearInputBtn"><i class="fas fa-eraser"></i> ล้าง</button>
-          </div>
-        </div>
-        <div class="drop-zone" id="dropZone">
-          <i class="fas fa-cloud-upload-alt" style="font-size:2rem;opacity:0.5;"></i>
-          <p style="opacity:0.7;margin-top:0.5rem;">ลากและวางไฟล์ .txt / .csv ที่นี่</p>
-        </div>
-        <textarea id="keyInput" placeholder="วางคีย์ของคุณที่นี่...&#10;หนึ่งคีย์ต่อบรรทัด&#10;ตัวอย่าง: CRX-A0D671-CEBEAA"></textarea>
-        <button class="btn btn-primary" id="generateBtn"><i class="fas fa-wand-magic-sparkles"></i> สร้างลิงก์</button>
-      </div>
-
-      <!-- แผงขวา -->
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title"><i class="fas fa-link"></i> ลิงก์ที่สร้าง</span>
-          <div class="toolbar">
-            <button class="btn btn-sm" id="selectAllBtn"><i class="far fa-check-square"></i> เลือกทั้งหมด</button>
-            <button class="btn btn-sm" id="deselectAllBtn"><i class="far fa-square"></i> ยกเลิก</button>
-            <div class="divider"></div>
-            <button class="btn btn-sm" id="copyAllBtn"><i class="fas fa-copy"></i> คัดลอกทั้งหมด</button>
-            <button class="btn btn-sm" id="copySelectedBtn"><i class="fas fa-check-double"></i> คัดลอกที่เลือก</button>
-            <div class="divider"></div>
-            <button class="btn btn-sm btn-danger" id="deleteSelectedBtn"><i class="fas fa-trash"></i> ลบที่เลือก</button>
-          </div>
-        </div>
-        <input type="text" class="search-input" id="searchInput" placeholder="🔍 ค้นหาลิงก์...">
-        <div class="link-list-container" id="linkListContainer">
-          <div style="text-align:center;padding:2rem;opacity:0.5;">
-            <i class="fas fa-inbox" style="font-size:3rem;"></i>
-            <p>ยังไม่มีลิงก์ที่สร้าง</p>
-          </div>
-        </div>
-        <div class="toolbar" style="justify-content:space-between;">
-          <span id="paginationInfo" style="font-size:0.85rem;opacity:0.7;">หน้า 1 จาก 1</span>
-          <div style="display:flex;gap:0.3rem;">
-            <button class="btn btn-sm" id="prevPageBtn"><i class="fas fa-chevron-left"></i> ก่อนหน้า</button>
-            <button class="btn btn-sm" id="nextPageBtn">ถัดไป <i class="fas fa-chevron-right"></i></button>
-          </div>
-        </div>
-      </div>
+<div class="modal-overlay" id="safariModal">
+    <div class="modal-container">
+        <div class="modal-icon">🌐</div>
+        <div class="modal-title">กรุณาเปิดใน Safari</div>
+        <div class="modal-message">เว็บไซต์นี้รองรับการทำงานเต็มรูปแบบบน Safari เท่านั้น<br><br>กรุณาเปิดลิงก์นี้ด้วย Safari เพื่อดำเนินการต่อ</div>
+        <button class="modal-btn" id="openSafariBtn">เปิดใน Safari</button>
     </div>
-  </div>
+</div>
 
-  <input type="file" id="fileInput" accept=".txt,.csv" style="display:none;">
-  <div class="toast-container" id="toastContainer"></div>
+<div id="toastMsg" class="toast-notify">✅ เปลี่ยนวิธีการติดตั้งแล้ว</div>
 
-  <script>
+<script>
     (function() {
-      'use strict';
-
-      // ⚡ เปลี่ยน Base URL ตรงนี้ได้เลย
-      let BASE_URL = 'https://marruriki0-spec.github.io/Shhes/';
-      
-      const STORAGE_KEY = 'keygen_pro_data';
-      const MAX_VISIBLE = 50;
-
-      // DOM elements
-      const $ = (s) => document.querySelector(s);
-      const keyInput = $('#keyInput');
-      const baseUrlInput = $('#baseUrlInput');
-      const linkListContainer = $('#linkListContainer');
-      const searchInput = $('#searchInput');
-      const toastContainer = $('#toastContainer');
-      const fileInput = $('#fileInput');
-      const dropZone = $('#dropZone');
-      const paginationInfo = $('#paginationInfo');
-      const totalKeysStat = $('#totalKeysStat');
-      const duplicateKeysStat = $('#duplicateKeysStat');
-      const totalLinksStat = $('#totalLinksStat');
-
-      // State
-      let keys = [];
-      let links = [];
-      let duplicates = [];
-      let filteredLinks = [];
-      let currentPage = 1;
-      const selectedLinks = new Set();
-      let history = [];
-      let historyIndex = -1;
-
-      // ==================== BASE URL ====================
-      function getBaseUrl() {
-        let url = baseUrlInput.value.trim();
-        // ถ้าไม่ลงท้ายด้วย / หรือ ?key= ให้เติมให้
-        if (url && !url.endsWith('/') && !url.includes('?key=')) {
-          url += '/';
-        }
-        return url || BASE_URL;
-      }
-
-      function saveBaseUrl() {
-        const url = getBaseUrl();
-        localStorage.setItem('keygen_baseurl', url);
-        BASE_URL = url;
-        showToast('บันทึก Base URL แล้ว!', 'success');
-        // สร้างลิงก์ใหม่ทันทีถ้ามีคีย์
-        if (keys.length > 0) {
-          links = buildLinks(keys);
-          renderLinks();
-          saveToStorage();
-        }
-      }
-
-      // ==================== TOAST ====================
-      function showToast(msg, type = 'info') {
-        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
-        const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.textContent = `${icons[type] || icons.info} ${msg}`;
-        toastContainer.appendChild(toast);
-        setTimeout(() => {
-          toast.style.opacity = '0';
-          toast.style.transition = 'opacity 0.3s';
-          setTimeout(() => toast.remove(), 300);
-        }, 2500);
-      }
-
-      // ==================== COPY ====================
-      function copyText(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.left = '0';
-        textarea.style.top = '0';
-        textarea.style.width = '2em';
-        textarea.style.height = '2em';
-        textarea.style.opacity = '0';
-        
-        document.body.appendChild(textarea);
-        
-        if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
-          textarea.contentEditable = true;
-          textarea.readOnly = false;
-          const range = document.createRange();
-          range.selectNodeContents(textarea);
-          const selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-          textarea.setSelectionRange(0, 999999);
-        } else {
-          textarea.focus();
-          textarea.select();
-          textarea.setSelectionRange(0, 999999);
+        // ========== ตรวจสอบเบราว์เซอร์ (บังคับ Safari บน iOS) ==========
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         }
         
-        let success = false;
-        try {
-          success = document.execCommand('copy');
-        } catch (err) {
-          console.error('Copy error:', err);
+        function isSafari() {
+            return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         }
         
-        document.body.removeChild(textarea);
-        window.getSelection()?.removeAllRanges();
-        
-        return success;
-      }
-
-      // ==================== HISTORY ====================
-      function saveHistory() {
-        const snapshot = { keys: [...keys], links: [...links], duplicates: [...duplicates] };
-        history = history.slice(0, historyIndex + 1);
-        history.push(snapshot);
-        if (history.length > 50) history.shift();
-        historyIndex = history.length - 1;
-      }
-
-      window.undoAction = function() {
-        if (historyIndex > 0) {
-          historyIndex--;
-          restoreSnapshot(history[historyIndex]);
-          showToast('เลิกทำสำเร็จ', 'info');
-        }
-      };
-
-      function restoreSnapshot(snapshot) {
-        keys = [...snapshot.keys];
-        links = [...snapshot.links];
-        duplicates = [...snapshot.duplicates];
-        keyInput.value = keys.join('\n');
-        renderLinks();
-        updateStats();
-      }
-
-      // ==================== PROCESS KEYS ====================
-      function processKeys(raw) {
-        if (!raw || !raw.trim()) return { keys: [], duplicates: [] };
-        const lines = raw.split(/\r?\n/);
-        const seen = new Set();
-        const k = [], d = [];
-        for (let line of lines) {
-          const t = line.trim();
-          if (!t) continue;
-          if (seen.has(t)) { d.push(t); }
-          else { seen.add(t); k.push(t); }
-        }
-        return { keys: k, duplicates: d };
-      }
-
-      function buildLinks(keyArr) {
-        const base = getBaseUrl();
-        return keyArr.map(k => base + encodeURIComponent(k));
-      }
-
-      // ==================== RENDER ====================
-      function renderLinks() {
-        const search = searchInput.value.toLowerCase().trim();
-        let display = links;
-        if (search) display = links.filter(l => l.toLowerCase().includes(search));
-        filteredLinks = display;
-
-        const totalPages = Math.ceil(display.length / MAX_VISIBLE) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-        const start = (currentPage - 1) * MAX_VISIBLE;
-        const pageLinks = display.slice(start, start + MAX_VISIBLE);
-
-        const frag = document.createDocumentFragment();
-        linkListContainer.innerHTML = '';
-
-        if (!pageLinks.length) {
-          linkListContainer.innerHTML = `<div style="text-align:center;padding:3rem;opacity:0.5;">
-            <i class="fas fa-inbox" style="font-size:3rem;"></i>
-            <p>${search ? 'ไม่พบลิงก์' : 'ยังไม่มีลิงก์'}</p></div>`;
-        } else {
-          pageLinks.forEach(link => {
-            const div = document.createElement('div');
-            div.className = 'link-item';
-            div.setAttribute('data-link', link);
-            div.innerHTML = `
-              <input type="checkbox" class="checkbox" ${selectedLinks.has(link) ? 'checked' : ''}>
-              <span class="link-text" title="${link}">${link.length > 60 ? link.substring(0,60)+'...' : link}</span>
-              <div class="item-actions">
-                <button class="btn btn-xs copy-btn"><i class="far fa-copy"></i></button>
-                <button class="btn btn-xs open-btn"><i class="fas fa-external-link-alt"></i></button>
-                <button class="btn btn-xs qr-btn"><i class="fas fa-qrcode"></i></button>
-                <button class="btn btn-xs btn-danger del-btn"><i class="fas fa-trash"></i></button>
-              </div>`;
-            frag.appendChild(div);
-          });
-          linkListContainer.appendChild(frag);
-        }
-
-        paginationInfo.textContent = `หน้า ${currentPage} จาก ${totalPages} (${display.length} ลิงก์)`;
-        updateStats();
-      }
-
-      // Event delegation
-      linkListContainer.addEventListener('click', function(e) {
-        const item = e.target.closest('.link-item');
-        if (!item) return;
-        const link = item.getAttribute('data-link');
-
-        if (e.target.closest('.copy-btn')) {
-          const ok = copyText(link);
-          showToast(ok ? 'คัดลอกแล้ว!' : 'คัดลอกไม่สำเร็จ', ok ? 'success' : 'error');
-        } else if (e.target.closest('.open-btn')) {
-          window.open(link, '_blank');
-        } else if (e.target.closest('.qr-btn')) {
-          showQR(link);
-        } else if (e.target.closest('.del-btn')) {
-          saveHistory();
-          links = links.filter(l => l !== link);
-          selectedLinks.delete(link);
-          renderLinks();
-          showToast('ลบลิงก์แล้ว', 'info');
-        }
-      });
-
-      linkListContainer.addEventListener('change', function(e) {
-        if (e.target.type === 'checkbox') {
-          const link = e.target.closest('.link-item')?.getAttribute('data-link');
-          if (!link) return;
-          e.target.checked ? selectedLinks.add(link) : selectedLinks.delete(link);
-        }
-      });
-
-      function showQR(link) {
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.innerHTML = `<div class="modal-content" style="text-align:center;">
-          <h3>รหัส QR</h3>
-          <div id="qrContainer" style="display:inline-block;padding:1rem;background:white;border-radius:1rem;"></div>
-          <p style="margin:1rem 0;word-break:break-all;">${link}</p>
-          <button class="btn" id="closeQr">ปิด</button></div>`;
-        document.body.appendChild(overlay);
-        new QRCode(overlay.querySelector('#qrContainer'), { text: link, width: 200, height: 200, colorDark: "#1a0e2e", colorLight: "#ffffff" });
-        overlay.querySelector('#closeQr').addEventListener('click', () => overlay.remove());
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-      }
-
-      // ==================== STATS ====================
-      function updateStats() {
-        totalKeysStat.textContent = keys.length;
-        duplicateKeysStat.textContent = duplicates.length;
-        totalLinksStat.textContent = links.length;
-      }
-
-      // ==================== GENERATE ====================
-      function generate() {
-        const { keys: k, duplicates: d } = processKeys(keyInput.value);
-        saveHistory();
-        keys = k;
-        duplicates = d;
-        links = buildLinks(k);
-        selectedLinks.clear();
-        currentPage = 1;
-        renderLinks();
-        saveToStorage();
-        showToast(`สร้าง ${links.length} ลิงก์แล้ว (ลบซ้ำ ${d.length} รายการ)`, 'success');
-      }
-
-      // ==================== STORAGE ====================
-      function saveToStorage() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-            keys, links, duplicates, text: keyInput.value,
-            baseUrl: getBaseUrl()
-          }));
-        } catch(e) {}
-      }
-
-      function loadStorage() {
-        try {
-          const d = JSON.parse(localStorage.getItem(STORAGE_KEY));
-          if (d) {
-            keys = d.keys || [];
-            links = d.links || [];
-            duplicates = d.duplicates || [];
-            keyInput.value = d.text || keys.join('\n');
-            if (d.baseUrl) {
-              BASE_URL = d.baseUrl;
-              baseUrlInput.value = d.baseUrl;
+        // ถ้าเป็น iOS แต่ไม่ใช่ Safari → แสดง Modal บังคับให้เปิดใน Safari
+        if (isIOS() && !isSafari()) {
+            const safariModal = document.getElementById('safariModal');
+            const openSafariBtn = document.getElementById('openSafariBtn');
+            
+            setTimeout(() => {
+                safariModal.classList.add('active');
+            }, 100);
+            
+            if (openSafariBtn) {
+                openSafariBtn.addEventListener('click', () => {
+                    const currentUrl = window.location.href;
+                    window.location.href = currentUrl;
+                    setTimeout(() => {
+                        alert('กรุณากด "เปิด" เพื่อเปิดใน Safari');
+                    }, 100);
+                });
             }
-            // โหลด Base URL ที่บันทึกแยก
-            const savedUrl = localStorage.getItem('keygen_baseurl');
-            if (savedUrl) {
-              BASE_URL = savedUrl;
-              baseUrlInput.value = savedUrl;
+            
+            document.body.style.pointerEvents = 'none';
+            return;
+        }
+        
+        const ADMIN_SECRET = "admin123";
+        
+        // ⚡ เปลี่ยนคลิปเริ่มต้นตรงนี้ ⚡
+        let wifiVideoId = localStorage.getItem('proxy_wifi_video_id') || "iI7z8gFYn04";   // WiFi ใหม่
+        let proxyVideoId = localStorage.getItem('proxy_proxy_video_id') || "jmZigFmkuVU"; // Proxy ใหม่
+        
+        let selectedMethod = sessionStorage.getItem('proxy_selected_method');
+        
+        function getKeyFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("key");
+        }
+        
+        function getAdminFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("admin");
+        }
+        
+        const userKey = getKeyFromURL();
+        const adminToken = getAdminFromURL();
+        const isAdmin = (adminToken === ADMIN_SECRET);
+        
+        function extractVideoId(url) {
+            if (!url) return null;
+            const youtuBeMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+            if (youtuBeMatch) return youtuBeMatch[1];
+            const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+            if (watchMatch) return watchMatch[1];
+            const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]+)/);
+            if (embedMatch) return embedMatch[1];
+            const directMatch = url.match(/^([a-zA-Z0-9_-]{11})$/);
+            if (directMatch) return directMatch[1];
+            return null;
+        }
+        
+        function updateVideoByMethod() {
+            const iframe = document.getElementById('youtubeIframe');
+            if (!iframe) return;
+            let videoId = wifiVideoId;
+            if (selectedMethod === 'wifi') videoId = wifiVideoId;
+            else if (selectedMethod === 'proxy') videoId = proxyVideoId;
+            iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&t=${Date.now()}`;
+        }
+        
+        function setSelectedMethod(method) {
+            selectedMethod = method;
+            sessionStorage.setItem('proxy_selected_method', method);
+            updateVideoByMethod();
+            showToast(`✅ เปลี่ยนเป็น ${method === 'wifi' ? 'WiFi / เน็ตบ้าน' : 'Proxy pin (เน็ตมือถือ)'} แล้ว`);
+        }
+        
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toastMsg');
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0px)';
+            if (isError) toast.style.borderColor = '#f87171';
+            else toast.style.borderColor = '#4ade80';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-50%) translateY(20px)';
+            }, 2500);
+        }
+        
+        const appContainer = document.getElementById('app');
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+        
+        function copyToClipboard(text, buttonElement) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = buttonElement.innerHTML;
+                buttonElement.innerHTML = '✓ คัดลอกแล้ว!';
+                buttonElement.classList.add('copied');
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalText;
+                    buttonElement.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('กดคัดลอกไม่สำเร็จ กรุณาลองใหม่');
+            });
+        }
+        
+        let mainHTML = `
+            <div style="text-align: center;">
+                <span class="badge-new">✦ PROXY ACCESS ✦</span>
+            </div>
+            <h1>Proxy Setup</h1>
+            <div class="subtext">ติดตั้งและยืนยันสิทธิ์การใช้งาน</div>
+        `;
+        
+        if (isAdmin) {
+            mainHTML += `
+                <div class="admin-panel">
+                    <div class="admin-title">
+                        🔐 แผงควบคุมแอดมิน (เปลี่ยนคลิปวิดีโอสอน)
+                    </div>
+                    <div class="admin-section">
+                        <div class="admin-label">📡 คลิปสำหรับ WiFi / เน็ตบ้าน</div>
+                        <div class="admin-input-group">
+                            <input type="text" id="adminWifiUrl" placeholder="วางลิงก์ YouTube คลิป WiFi" value="">
+                            <button class="admin-save-btn" id="adminSaveWifiBtn">💾 เปลี่ยนคลิป WiFi</button>
+                        </div>
+                    </div>
+                    <div class="admin-section">
+                        <div class="admin-label">🔌 คลิปสำหรับ Proxy pin (เน็ตมือถือ)</div>
+                        <div class="admin-input-group">
+                            <input type="text" id="adminProxyUrl" placeholder="วางลิงก์ YouTube คลิป Proxy" value="">
+                            <button class="admin-save-btn" id="adminSaveProxyBtn">💾 เปลี่ยนคลิป Proxy</button>
+                        </div>
+                    </div>
+                    <div class="admin-note">
+                        ⚡ เมื่อเปลี่ยนคลิป ระบบจะอัปเดตให้ผู้ใช้เห็นทันที (iOS ได้)
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (userKey) {
+            mainHTML += `
+                <div class="key-banner">
+                    <div class="key-banner-label">🔑 คีย์สำหรับใช้งาน (กดคัดลอก)</div>
+                    <div class="key-banner-content">
+                        <span class="key-banner-text" id="licenseKeyText">${escapeHtml(userKey)}</span>
+                        <button class="copy-btn-small" id="copyKeyBtn">📋 คัดลอก</button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        const initialVideoId = (selectedMethod === 'proxy') ? proxyVideoId : wifiVideoId;
+        mainHTML += `
+            <div class="video-card">
+                <iframe id="youtubeIframe" 
+                    src="https://www.youtube.com/embed/${initialVideoId}?rel=0&t=${Date.now()}" 
+                    title="Proxy Tutorial"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" id="webPortalBtn">
+                    <span class="icon-img"></span>
+                    เว็บใส่คีย์ (ลงทะเบียน)
+                </button>
+                
+                <button class="btn-facebook" id="facebookContactBtn">
+                    <span class="facebook-icon"></span>
+                    <span>ติดต่อผู้ดูแล (Facebook)</span>
+                </button>
+                
+                <!-- ปุ่ม Discord ที่เพิ่มใหม่ -->
+                <button class="btn-discord" id="discordBtn">
+                    <span class="discord-icon"></span>
+                    <span>💬 ดิสคอส มานั่งแช่ไว้เพื่อได้คีย์ฟรี</span>
+                </button>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="change-method-btn" id="changeMethodBtn">
+                    🔄 เปลี่ยนวิธีการเชื่อมต่อ
+                </button>
+            </div>
+
+            <div class="footer-note">
+                เข้ารหัส • การเข้าถึงส่วนตัว
+            </div>
+        `;
+        
+        appContainer.innerHTML = mainHTML;
+        
+        if (userKey) {
+            const copyBtn = document.getElementById('copyKeyBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', () => {
+                    copyToClipboard(userKey, copyBtn);
+                });
             }
-            renderLinks();
-            updateStats();
-          }
-        } catch(e) {}
-      }
-
-      // ==================== IMPORT ====================
-      function importFile(file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          keyInput.value = e.target.result;
-          generate();
-        };
-        reader.readAsText(file);
-      }
-
-      // ==================== EVENT BINDINGS ====================
-      $('#generateBtn').addEventListener('click', generate);
-
-      $('#saveBaseUrlBtn').addEventListener('click', saveBaseUrl);
-      
-      // Auto-save เมื่อกด Enter ในช่อง Base URL
-      baseUrlInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') saveBaseUrl();
-      });
-
-      $('#clearInputBtn').addEventListener('click', () => {
-        saveHistory();
-        keyInput.value = '';
-        keys = []; links = []; duplicates = [];
-        selectedLinks.clear();
-        renderLinks();
-        saveToStorage();
-        showToast('ล้างข้อมูลแล้ว', 'info');
-      });
-
-      // COPY ALL
-      $('#copyAllBtn').addEventListener('click', function() {
-        if (!links.length) {
-          showToast('ไม่มีลิงก์ให้คัดลอก', 'warning');
-          return;
         }
-        const text = links.join('\n');
-        const success = copyText(text);
-        showToast(success ? `คัดลอก ${links.length} ลิงก์แล้ว!` : 'คัดลอกไม่สำเร็จ กรุณาลองใหม่', success ? 'success' : 'error');
-      });
-
-      $('#copySelectedBtn').addEventListener('click', function() {
-        if (!selectedLinks.size) {
-          showToast('ไม่ได้เลือกลิงก์ใด', 'warning');
-          return;
+        
+        const changeMethodBtn = document.getElementById('changeMethodBtn');
+        if (changeMethodBtn) {
+            changeMethodBtn.addEventListener('click', () => {
+                const modal = document.getElementById('choiceModal');
+                modal.classList.add('active');
+            });
         }
-        const arr = [...selectedLinks];
-        const success = copyText(arr.join('\n'));
-        showToast(success ? `คัดลอก ${arr.length} ลิงก์แล้ว!` : 'คัดลอกไม่สำเร็จ', success ? 'success' : 'error');
-      });
-
-      $('#selectAllBtn').addEventListener('click', () => {
-        filteredLinks.forEach(l => selectedLinks.add(l));
-        renderLinks();
-      });
-
-      $('#deselectAllBtn').addEventListener('click', () => {
-        selectedLinks.clear();
-        renderLinks();
-      });
-
-      $('#deleteSelectedBtn').addEventListener('click', () => {
-        if (!selectedLinks.size) { showToast('ไม่ได้เลือกลิงก์', 'warning'); return; }
-        saveHistory();
-        const count = selectedLinks.size;
-        links = links.filter(l => !selectedLinks.has(l));
-        selectedLinks.clear();
-        renderLinks();
-        showToast(`ลบ ${count} ลิงก์แล้ว`, 'info');
-      });
-
-      $('#prevPageBtn').addEventListener('click', () => {
-        if (currentPage > 1) { currentPage--; renderLinks(); }
-      });
-
-      $('#nextPageBtn').addEventListener('click', () => {
-        const max = Math.ceil(filteredLinks.length / MAX_VISIBLE) || 1;
-        if (currentPage < max) { currentPage++; renderLinks(); }
-      });
-
-      searchInput.addEventListener('input', function() {
-        currentPage = 1;
-        renderLinks();
-      });
-
-      // Import
-      $('#importTxtBtn').addEventListener('click', () => { fileInput.accept = '.txt'; fileInput.click(); });
-      $('#importCsvBtn').addEventListener('click', () => { fileInput.accept = '.csv'; fileInput.click(); });
-
-      $('#pasteBtn').addEventListener('click', async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          keyInput.value = text;
-          generate();
-        } catch { showToast('ไม่สามารถวางจากคลิปบอร์ดได้', 'error'); }
-      });
-
-      fileInput.addEventListener('change', (e) => {
-        if (e.target.files[0]) importFile(e.target.files[0]);
-        fileInput.value = '';
-      });
-
-      // Drag & Drop
-      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-        if (e.dataTransfer.files[0]) importFile(e.dataTransfer.files[0]);
-      });
-
-      // Backup/Restore
-      $('#backupBtn').addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify({ keys, links, duplicates, baseUrl: getBaseUrl() }, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `backup-${Date.now()}.json`;
-        a.click();
-        showToast('ดาวน์โหลดสำรองข้อมูลแล้ว', 'success');
-      });
-
-      $('#restoreBtn').addEventListener('click', () => {
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        inp.accept = '.json';
-        inp.onchange = (e) => {
-          const f = e.target.files[0];
-          if (!f) return;
-          const r = new FileReader();
-          r.onload = (ev) => {
-            try {
-              const d = JSON.parse(ev.target.result);
-              if (d.keys && d.links) {
-                saveHistory();
-                keys = d.keys;
-                links = d.links;
-                duplicates = d.duplicates || [];
-                keyInput.value = keys.join('\n');
-                if (d.baseUrl) {
-                  BASE_URL = d.baseUrl;
-                  baseUrlInput.value = d.baseUrl;
-                  localStorage.setItem('keygen_baseurl', d.baseUrl);
+        
+        if (isAdmin) {
+            const saveWifiBtn = document.getElementById('adminSaveWifiBtn');
+            const wifiUrlInput = document.getElementById('adminWifiUrl');
+            if (saveWifiBtn) {
+                saveWifiBtn.addEventListener('click', () => {
+                    const url = wifiUrlInput.value.trim();
+                    if (!url) { showToast('⚠️ กรุณาใส่ลิงก์ YouTube', true); return; }
+                    const videoId = extractVideoId(url);
+                    if (videoId) {
+                        wifiVideoId = videoId;
+                        localStorage.setItem('proxy_wifi_video_id', wifiVideoId);
+                        showToast('✅ เปลี่ยนคลิป WiFi สำเร็จ! ผู้ใช้จะเห็นคลิปใหม่ทันที');
+                        wifiUrlInput.value = '';
+                        if (selectedMethod === 'wifi') updateVideoByMethod();
+                    } else {
+                        showToast('❌ ไม่สามารถดึงรหัสวิดีโอได้', true);
+                    }
+                });
+            }
+            
+            const saveProxyBtn = document.getElementById('adminSaveProxyBtn');
+            const proxyUrlInput = document.getElementById('adminProxyUrl');
+            if (saveProxyBtn) {
+                saveProxyBtn.addEventListener('click', () => {
+                    const url = proxyUrlInput.value.trim();
+                    if (!url) { showToast('⚠️ กรุณาใส่ลิงก์ YouTube', true); return; }
+                    const videoId = extractVideoId(url);
+                    if (videoId) {
+                        proxyVideoId = videoId;
+                        localStorage.setItem('proxy_proxy_video_id', proxyVideoId);
+                        showToast('✅ เปลี่ยนคลิป Proxy สำเร็จ! ผู้ใช้จะเห็นคลิปใหม่ทันที');
+                        proxyUrlInput.value = '';
+                        if (selectedMethod === 'proxy') updateVideoByMethod();
+                    } else {
+                        showToast('❌ ไม่สามารถดึงรหัสวิดีโอได้', true);
+                    }
+                });
+            }
+        }
+        
+        const verifyBtn = document.getElementById('webPortalBtn');
+        if (verifyBtn) {
+            verifyBtn.addEventListener('click', () => {
+                const url = userKey 
+                    ? `https://proxy.scriptxmodz.xyz/index.php?key=${encodeURIComponent(userKey)}`
+                    : 'https://proxy.scriptxmodz.xyz/index.php';
+                window.open(url, '_blank');
+            });
+        }
+        
+        const fbBtn = document.getElementById('facebookContactBtn');
+        if (fbBtn) {
+            fbBtn.addEventListener('click', () => {
+                window.open('https://www.facebook.com/share/14bYEXFv1Jd/?mibextid=wwXIfr', '_blank');
+            });
+        }
+        
+        // --- Event สำหรับปุ่ม Discord (ลิงก์ที่คุณให้มา) ---
+        const discordBtn = document.getElementById('discordBtn');
+        if (discordBtn) {
+            discordBtn.addEventListener('click', () => {
+                window.open('https://discord.gg/xwAqgW5xK', '_blank');
+            });
+        }
+        // ------------------------------------------------
+        
+        const warningModal = document.getElementById('warningModal');
+        const choiceModal = document.getElementById('choiceModal');
+        const okBtn = document.getElementById('modalOkBtn');
+        const wifiChoiceBtn = document.getElementById('wifiChoiceBtn');
+        const proxyChoiceBtn = document.getElementById('proxyChoiceBtn');
+        
+        function showChoiceModal() {
+            setTimeout(() => {
+                choiceModal.classList.add('active');
+            }, 100);
+        }
+        
+        if (okBtn) {
+            okBtn.addEventListener('click', () => {
+                warningModal.classList.remove('active');
+                if (!selectedMethod) {
+                    showChoiceModal();
                 }
-                renderLinks();
-                updateStats();
-                saveToStorage();
-                showToast('กู้คืนข้อมูลสำเร็จ', 'success');
-              }
-            } catch { showToast('ไฟล์ไม่ถูกต้อง', 'error'); }
-          };
-          r.readAsText(f);
-        };
-        inp.click();
-      });
-
-      // Auto generate
-      keyInput.addEventListener('input', function() {
-        clearTimeout(this._timer);
-        this._timer = setTimeout(generate, 500);
-      });
-
-      // Keyboard shortcuts
-      document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'g') { e.preventDefault(); generate(); }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); window.undoAction(); }
-      });
-
-      // Init
-      loadStorage();
-      if (!keys.length) { renderLinks(); updateStats(); }
-      
-      // ตั้งค่า Base URL เริ่มต้น
-      const savedUrl = localStorage.getItem('keygen_baseurl');
-      if (savedUrl) {
-        baseUrlInput.value = savedUrl;
-        BASE_URL = savedUrl;
-      }
-      
-      console.log('🚀 พร้อมใช้งานแล้ว! Base URL:', BASE_URL);
+            });
+        }
+        
+        if (wifiChoiceBtn) {
+            wifiChoiceBtn.addEventListener('click', () => {
+                setSelectedMethod('wifi');
+                choiceModal.classList.remove('active');
+            });
+        }
+        
+        if (proxyChoiceBtn) {
+            proxyChoiceBtn.addEventListener('click', () => {
+                setSelectedMethod('proxy');
+                choiceModal.classList.remove('active');
+            });
+        }
+        
+        warningModal.addEventListener('click', (e) => {
+            if (e.target === warningModal) warningModal.classList.remove('active');
+        });
+        choiceModal.addEventListener('click', (e) => {
+            if (e.target === choiceModal) choiceModal.classList.remove('active');
+        });
+        
+        setTimeout(() => {
+            warningModal.classList.add('active');
+        }, 100);
+        
+        if (selectedMethod) {
+            updateVideoByMethod();
+        }
     })();
-  </script>
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>
 </body>
 </html>
